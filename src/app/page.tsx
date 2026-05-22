@@ -18,6 +18,7 @@ import {
   Zap
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
+import { formatLocalDateCompact } from '@/lib/date';
 import SecuritySettings from '@/app/components/SecuritySettings';
 import { useToast } from '@/app/components/Toast';
 import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
@@ -895,7 +896,7 @@ export default function Dashboard() {
                         Facture #{inv.invoice_number} • {inv.projectName || 'Projet divers'}
                       </span>
                       <span style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px', color: inv.status === 'OVERDUE' ? 'var(--danger)' : 'var(--text-muted)' }}>
-                        <Clock size={12} /> Échéance: {new Date(inv.due_date).toLocaleDateString('fr-FR')}
+                        <Clock size={12} /> Échéance: {formatLocalDateCompact(inv.due_date)}
                       </span>
                     </div>
 
@@ -960,7 +961,7 @@ export default function Dashboard() {
                         {t.description}
                       </span>
                       <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                        {t.category} • {new Date(t.date).toLocaleDateString('fr-FR')}
+                        {t.category} • {formatLocalDateCompact(t.date)}
                       </span>
                     </div>
 

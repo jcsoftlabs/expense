@@ -14,6 +14,7 @@ import {
   Search
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
+import { formatLocalDateCompact } from '@/lib/date';
 import { useToast } from '@/app/components/Toast';
 import ConfirmModal from '@/app/components/ConfirmModal';
 import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
@@ -431,7 +432,7 @@ export default function Receivables() {
                       <div>
                         <h4 style={{ fontSize: '0.98rem' }}>{inv.invoice_number}</h4>
                         <span style={{ fontSize: '0.78rem', color: 'var(--text-dark)' }}>
-                          Émise le {new Date(inv.issue_date).toLocaleDateString('fr-FR')}
+                          Émise le {formatLocalDateCompact(inv.issue_date)}
                         </span>
                       </div>
                     </div>
@@ -473,7 +474,7 @@ export default function Receivables() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '15px', borderTop: '1px solid var(--border-glass)' }}>
                   <div style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px', color: isOverdue ? 'var(--danger)' : 'var(--text-muted)' }}>
                     <Clock size={12} />
-                    <span>Échéance: {new Date(inv.due_date).toLocaleDateString('fr-FR')}</span>
+                    <span>Échéance: {formatLocalDateCompact(inv.due_date)}</span>
                   </div>
 
                   <div style={{ display: 'flex', gap: '10px' }}>

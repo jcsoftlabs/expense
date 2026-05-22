@@ -17,6 +17,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
+import { formatLocalDate } from '@/lib/date';
 import { useToast } from '@/app/components/Toast';
 import ConfirmModal from '@/app/components/ConfirmModal';
 
@@ -343,7 +344,7 @@ export default function Projects() {
                             </span>
                           )}
                           <span style={{ fontSize: '0.76rem', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            📅 Début : {new Date(p.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            📅 Début : {formatLocalDate(p.created_at)}
                           </span>
                         </div>
                       </div>

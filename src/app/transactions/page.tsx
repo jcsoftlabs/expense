@@ -15,6 +15,7 @@ import {
   User
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
+import { formatLocalDate, formatLocalDateCompact } from '@/lib/date';
 import { useToast } from '@/app/components/Toast';
 import ConfirmModal from '@/app/components/ConfirmModal';
 import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
@@ -481,7 +482,7 @@ export default function Transactions() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     <Calendar size={11} />
-                    {new Date(t.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    {formatLocalDate(t.date, { day: '2-digit', month: 'short', year: 'numeric' })}
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     <Tag size={11} />
@@ -526,7 +527,7 @@ export default function Transactions() {
                       <td style={{ padding: '16px 24px', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <Calendar size={15} color="var(--text-dark)" />
-                          <span style={{ fontSize: '0.9rem' }}>{new Date(t.date).toLocaleDateString('fr-FR')}</span>
+                          <span style={{ fontSize: '0.9rem' }}>{formatLocalDateCompact(t.date)}</span>
                         </div>
                       </td>
 
