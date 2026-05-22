@@ -557,6 +557,13 @@ p {
   box-shadow: 0 0 10px rgba(156, 163, 175, 0.1);
 }
 
+.badge-partial {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.1);
+}
+
 /* Dialog/Modal Styling */
 .modal-overlay {
   position: fixed;

@@ -24,9 +24,10 @@ interface Receivable {
   id: string;
   invoice_number: string;
   amount: number;
+  paid_amount: number;
   issue_date: string;
   due_date: string;
-  status: 'PENDING' | 'PAID' | 'OVERDUE';
+  status: 'PENDING' | 'PAID' | 'OVERDUE' | 'PARTIAL';
   currency: string;
   client_id?: string;
   project_id?: string;
@@ -81,6 +82,7 @@ export default function Receivables() {
   // Pay Invoice Modal States
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
   const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null);
+  const [payAmount, setPayAmount] = useState<string>('');
   const [payMethod, setPayMethod] = useState<string>('CASH');
   const [payDate, setPayDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
@@ -129,7 +131,11 @@ export default function Receivables() {
 
   // Handle invoice payment activation opening modal
   const openPayModal = (id: string) => {
+    const inv = receivables.find(r => r.id === id);
+    if (!inv) return;
+    const remaining = inv.amount - (inv.paid_amount || 0);
     setPayingInvoiceId(id);
+    setPayAmount(remaining.toFixed(2));
     setPayMethod('CASH');
     setPayDate(new Date().toISOString().split('T')[0]);
     setIsPayModalOpen(true);
@@ -146,7 +152,8 @@ export default function Receivables() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           paymentMethod: payMethod,
-          paymentDate: payDate
+          paymentDate: payDate,
+          amountToPay: parseFloat(payAmount)
         })
       });
 
@@ -346,11 +353,12 @@ export default function Receivables() {
 
       {/* Filter Tabs */}
       <section style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--border-glass)', paddingBottom: '16px', marginBottom: '30px', flexWrap: 'wrap' }}>
-        {['ALL', 'PENDING', 'OVERDUE', 'PAID'].map((status) => {
+        {['ALL', 'PENDING', 'PARTIAL', 'OVERDUE', 'PAID'].map((status) => {
           const count = receivables.filter(r => status === 'ALL' || r.status === status).length;
           const labels: { [key: string]: string } = {
             ALL: 'Toutes',
             PENDING: 'En Attente',
+            PARTIAL: 'Partielles',
             OVERDUE: 'En Retard',
             PAID: 'Payées'
           };
@@ -438,9 +446,9 @@ export default function Receivables() {
                     </div>
 
                     <span className={`badge ${
-                      inv.status === 'PAID' ? 'badge-success' : isOverdue ? 'badge-danger' : 'badge-warning'
+                      inv.status === 'PAID' ? 'badge-success' : inv.status === 'PARTIAL' ? 'badge-partial' : isOverdue ? 'badge-danger' : 'badge-warning'
                     }`}>
-                      {inv.status === 'PAID' ? 'Payée' : isOverdue ? 'En retard' : 'En attente'}
+                      {inv.status === 'PAID' ? 'Payée' : inv.status === 'PARTIAL' ? 'Partielle' : isOverdue ? 'En retard' : 'En attente'}
                     </span>
                   </div>
 
@@ -466,6 +474,37 @@ export default function Receivables() {
                       <p style={{ fontSize: '0.8rem', marginTop: '8px', fontStyle: 'italic', color: 'var(--text-muted)' }}>
                         "{inv.notes}"
                       </p>
+                    )}
+
+                    {inv.status === 'PARTIAL' && (
+                      <div style={{
+                        marginTop: '12px',
+                        padding: '10px 12px',
+                        background: 'rgba(168, 85, 247, 0.04)',
+                        border: '1px solid rgba(168, 85, 247, 0.15)',
+                        borderRadius: '8px',
+                        fontSize: '0.78rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Payé :</span>
+                          <span style={{ fontWeight: '700', color: '#c084fc' }}>{formatCurrency(inv.paid_amount || 0, inv.currency)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Reste :</span>
+                          <span style={{ fontWeight: '700', color: 'var(--text-main)' }}>{formatCurrency(inv.amount - (inv.paid_amount || 0), inv.currency)}</span>
+                        </div>
+                        <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', marginTop: '4px', overflow: 'hidden' }}>
+                          <div style={{ 
+                            width: `${Math.min(Math.max(((inv.paid_amount || 0) / inv.amount) * 100, 0), 100)}%`, 
+                            height: '100%', 
+                            background: 'linear-gradient(90deg, #a855f7, #c084fc)',
+                            borderRadius: '2px'
+                          }} />
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -663,55 +702,95 @@ export default function Receivables() {
       )}
 
       {/* Pay Invoice Modal Dialog */}
-      {isPayModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-container" style={{ maxWidth: '400px' }}>
-            <div className="modal-header">
-              <h3 className="modal-title">Encaisser la Facture</h3>
-              <button className="modal-close" onClick={() => setIsPayModalOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <form onSubmit={submitPayment}>
-              {/* Payment Method Selector */}
-              <div className="input-group">
-                <label className="input-label">Moyen de paiement *</label>
-                <select 
-                  className="form-select"
-                  value={payMethod}
-                  onChange={(e) => setPayMethod(e.target.value)}
-                  required
-                >
-                  <option value="CASH">💵 Espèces (Cash)</option>
-                  <option value="VIREMENT">🏦 Virement Bancaire</option>
-                  <option value="CHEQUE">✍️ Chèque</option>
-                  <option value="MOBILE_MONEY">📱 Mobile Money (MonCash/Natcash)</option>
-                </select>
-              </div>
-
-              {/* Payment Date */}
-              <div className="input-group">
-                <label className="input-label">Date de paiement réelle *</label>
-                <input 
-                  type="date" 
-                  className="form-input" 
-                  required 
-                  value={payDate}
-                  onChange={(e) => setPayDate(e.target.value)}
-                />
-              </div>
-
-              <div className="modal-actions" style={{ marginTop: '25px' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setIsPayModalOpen(false)}>Annuler</button>
-                <button type="submit" className="btn btn-success" disabled={submitting}>
-                  {submitting ? 'Encaissement...' : 'Confirmer l\'encaissement'}
+      {isPayModalOpen && (() => {
+        const payingInvoice = receivables.find(r => r.id === payingInvoiceId);
+        return (
+          <div className="modal-overlay">
+            <div className="modal-container" style={{ maxWidth: '400px' }}>
+              <div className="modal-header">
+                <h3 className="modal-title">Encaisser la Facture</h3>
+                <button className="modal-close" onClick={() => setIsPayModalOpen(false)}>
+                  <X size={20} />
                 </button>
               </div>
-            </form>
+
+              {payingInvoice && (
+                <div style={{ marginBottom: '20px', padding: '12px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid var(--border-glass)', fontSize: '0.85rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Montant total:</span>
+                    <span style={{ fontWeight: '600' }}>{formatCurrency(payingInvoice.amount, payingInvoice.currency)}</span>
+                  </div>
+                  {payingInvoice.paid_amount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Déjà payé:</span>
+                      <span style={{ color: '#c084fc', fontWeight: '600' }}>{formatCurrency(payingInvoice.paid_amount, payingInvoice.currency)}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', borderTop: '1px dashed var(--border-glass)', paddingTop: '6px', marginTop: '2px' }}>
+                    <span style={{ color: 'var(--text-main)' }}>Reste à payer:</span>
+                    <span style={{ color: 'var(--primary)' }}>{formatCurrency(payingInvoice.amount - (payingInvoice.paid_amount || 0), payingInvoice.currency)}</span>
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={submitPayment}>
+                {/* Montant à Encaisser */}
+                <div className="input-group">
+                  <label className="input-label">Montant à encaisser ({payingInvoice?.currency}) *</label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    className="form-input" 
+                    required 
+                    value={payAmount}
+                    onChange={(e) => setPayAmount(e.target.value)}
+                    max={payingInvoice ? (payingInvoice.amount - (payingInvoice.paid_amount || 0)).toFixed(2) : undefined}
+                    min="0.01"
+                  />
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    Par défaut, le solde restant. Réduisez ce montant pour un acompte.
+                  </span>
+                </div>
+
+                {/* Payment Method Selector */}
+                <div className="input-group">
+                  <label className="input-label">Moyen de paiement *</label>
+                  <select 
+                    className="form-select"
+                    value={payMethod}
+                    onChange={(e) => setPayMethod(e.target.value)}
+                    required
+                  >
+                    <option value="CASH">💵 Espèces (Cash)</option>
+                    <option value="VIREMENT">🏦 Virement Bancaire</option>
+                    <option value="CHEQUE">✍️ Chèque</option>
+                    <option value="MOBILE_MONEY">📱 Mobile Money (MonCash/Natcash)</option>
+                  </select>
+                </div>
+
+                {/* Payment Date */}
+                <div className="input-group">
+                  <label className="input-label">Date de paiement réelle *</label>
+                  <input 
+                    type="date" 
+                    className="form-input" 
+                    required 
+                    value={payDate}
+                    onChange={(e) => setPayDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="modal-actions" style={{ marginTop: '25px' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setIsPayModalOpen(false)}>Annuler</button>
+                  <button type="submit" className="btn btn-success" disabled={submitting}>
+                    {submitting ? 'Encaissement...' : 'Confirmer l\'encaissement'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Styled JSX local hover states */}
       <style jsx global>{`

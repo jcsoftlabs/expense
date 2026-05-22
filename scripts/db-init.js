@@ -72,6 +72,7 @@ async function main() {
       id VARCHAR(36) PRIMARY KEY,
       invoice_number VARCHAR(100) NOT NULL,
       amount DECIMAL(12, 2) NOT NULL,
+      paid_amount DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
       issue_date DATE NOT NULL,
       due_date DATE NOT NULL,
       status VARCHAR(50) DEFAULT 'PENDING', -- PENDING, PAID, OVERDUE
@@ -127,10 +128,10 @@ async function main() {
 
     // Seed Receivables (Invoices in USD and HTG)
     await connection.query(`
-      INSERT INTO receivables (id, invoice_number, amount, issue_date, due_date, status, client_id, project_id, notes, currency) VALUES
-      ('r1', 'INV-2026-001', 3750.00, '2026-05-15', '2026-06-15', 'PENDING', '${client1Id}', '${project1Id}', 'E-Commerce Milestone 2 - Frontend complete', 'USD'),
-      ('r2', 'INV-2026-002', 250000.00, '2026-05-18', '2026-05-20', 'OVERDUE', '${client1Id}', '${project1Id}', 'Urgent: Local consulting and custom backend integration (HTG invoice)', 'HTG'),
-      ('r3', 'INV-2026-003', 450000.00, '2026-05-01', '2026-05-12', 'PAID', '${client2Id}', '${project2Id}', 'AI Audit Project Completion Invoice', 'HTG');
+      INSERT INTO receivables (id, invoice_number, amount, paid_amount, issue_date, due_date, status, client_id, project_id, notes, currency) VALUES
+      ('r1', 'INV-2026-001', 3750.00, 0.00, '2026-05-15', '2026-06-15', 'PENDING', '${client1Id}', '${project1Id}', 'E-Commerce Milestone 2 - Frontend complete', 'USD'),
+      ('r2', 'INV-2026-002', 250000.00, 0.00, '2026-05-18', '2026-05-20', 'OVERDUE', '${client1Id}', '${project1Id}', 'Urgent: Local consulting and custom backend integration (HTG invoice)', 'HTG'),
+      ('r3', 'INV-2026-003', 450000.00, 450000.00, '2026-05-01', '2026-05-12', 'PAID', '${client2Id}', '${project2Id}', 'AI Audit Project Completion Invoice', 'HTG');
     `);
 
     console.log('Seeding completed successfully!');

@@ -36,7 +36,8 @@ export async function GET(request: Request) {
     const receivables = await query(sql, params);
     const formatted = receivables.map((r: any) => ({
       ...r,
-      amount: parseFloat(r.amount || 0)
+      amount: parseFloat(r.amount || 0),
+      paid_amount: parseFloat(r.paid_amount || 0)
     }));
 
     return NextResponse.json(formatted);
@@ -63,8 +64,8 @@ export async function POST(request: Request) {
     const invCurrency = currency || 'USD';
 
     await query(
-      `INSERT INTO receivables (id, invoice_number, amount, issue_date, due_date, status, client_id, project_id, notes, currency) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, invoice_number, invAmount, issueDate, dueDate, invStatus, client_id || null, project_id || null, notes || null, invCurrency]
+      `INSERT INTO receivables (id, invoice_number, amount, paid_amount, issue_date, due_date, status, client_id, project_id, notes, currency) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, invoice_number, invAmount, 0.00, issueDate, dueDate, invStatus, client_id || null, project_id || null, notes || null, invCurrency]
     );
 
     const [newInvoice] = await query(`SELECT * FROM receivables WHERE id = ?`, [id]);
