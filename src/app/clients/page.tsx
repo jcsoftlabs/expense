@@ -15,6 +15,8 @@ import {
   FileText
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
+import { useToast } from '@/app/components/Toast';
+import ConfirmModal from '@/app/components/ConfirmModal';
 
 interface Client {
   id: string;
@@ -31,10 +33,15 @@ interface Client {
 }
 
 export default function Clients() {
+  const { showToast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Deletion Modal States
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Modal form states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -63,11 +70,21 @@ export default function Clients() {
     }
   }
 
+  // Hash function to dynamically select avatar class (0 to 7) based on client name
+  function getAvatarClass(name: string) {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % 8;
+    return `avatar-${index}`;
+  }
+
   // Handle client creation
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!formData.name) {
-      alert('Le nom du client est requis');
+      showToast('Le nom du client est requis', 'warning');
       return;
     }
 
@@ -81,38 +98,79 @@ export default function Clients() {
 
       if (!res.ok) throw new Error("Erreur lors de la création du client");
 
+      showToast('Client créé avec succès !', 'success');
       setIsModalOpen(false);
       setFormData({ name: '', email: '', phone: '', company: '' }); // reset
       fetchClients(); // reload
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message || 'Erreur lors de la création du client.', 'error');
     } finally {
       setSubmitting(false);
     }
   }
 
+  function confirmDelete(id: string) {
+    setDeleteId(id);
+    setIsDeleteModalOpen(true);
+  }
+
   // Handle client deletion
-  async function handleDelete(id: string) {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce client ? Tous les projets et transactions liés seront conservés, mais dissociés de ce client.')) return;
+  async function handleDelete() {
+    if (!deleteId) return;
 
     try {
-      const res = await fetch(`/api/clients/${id}`, {
+      const res = await fetch(`/api/clients/${deleteId}`, {
         method: 'DELETE'
       });
 
       if (!res.ok) throw new Error('Impossible de supprimer le client.');
       
-      setClients(clients.filter(c => c.id !== id));
+      showToast('Client supprimé avec succès !', 'success');
+      setClients(clients.filter(c => c.id !== deleteId));
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message || 'Erreur lors de la suppression.', 'error');
+    } finally {
+      setIsDeleteModalOpen(false);
+      setDeleteId(null);
     }
   }
 
   if (loading && clients.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '15px' }}>
-        <Loader2 className="animate-spin" size={40} color="var(--primary)" />
-        <p>Ouverture du répertoire clients...</p>
+      <div>
+        {/* Header Skeleton */}
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '35px', flexWrap: 'wrap', gap: '20px' }}>
+          <div>
+            <div className="skeleton" style={{ width: '280px', height: '36px', marginBottom: '8px' }}></div>
+            <div className="skeleton" style={{ width: '420px', height: '16px' }}></div>
+          </div>
+          <div className="skeleton" style={{ width: '160px', height: '40px', borderRadius: '8px' }}></div>
+        </header>
+
+        {/* Card Grid Skeleton */}
+        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
+          {[1, 2, 3].map(idx => (
+            <div key={idx} className="skeleton-card" style={{ minHeight: '260px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="skeleton" style={{ width: '42px', height: '42px', borderRadius: '50%' }}></div>
+                  <div>
+                    <div className="skeleton" style={{ width: '140px', height: '18px', marginBottom: '6px' }}></div>
+                    <div className="skeleton" style={{ width: '100px', height: '12px' }}></div>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div className="skeleton" style={{ width: '80%', height: '14px' }}></div>
+                <div className="skeleton" style={{ width: '60%', height: '14px' }}></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div className="skeleton" style={{ height: '60px', borderRadius: '8px' }}></div>
+                <div className="skeleton" style={{ height: '60px', borderRadius: '8px' }}></div>
+              </div>
+            </div>
+          ))}
+        </section>
       </div>
     );
   }
@@ -133,8 +191,39 @@ export default function Clients() {
       {/* CRM Client Cards Grid */}
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
         {clients.length === 0 ? (
-          <div style={{ gridColumn: '1 / -1', padding: '50px 20px', textAlign: 'center', color: 'var(--text-dark)' }} className="glass-panel">
-            Aucun client enregistré pour le moment.
+          <div style={{ 
+            gridColumn: '1 / -1', 
+            padding: '60px 20px', 
+            textAlign: 'center', 
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '16px'
+          }} className="glass-panel empty-state">
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.02)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-dark)',
+              border: '1px solid var(--border-glass)',
+              marginBottom: '8px'
+            }}>
+              <User size={28} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.25rem', color: '#ffffff', marginBottom: '6px' }}>Aucun client enregistré</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '400px', margin: '0 auto' }}>
+                Ajoutez vos clients pour lier leurs projets, suivre leur facturation et gérer vos encours financiers de façon structurée.
+              </p>
+            </div>
+            <button className="btn btn-primary" onClick={() => setIsModalOpen(true)} style={{ marginTop: '8px' }}>
+              <Plus size={16} /> Ajouter votre premier client
+            </button>
           </div>
         ) : (
           clients.map((c) => {
@@ -154,18 +243,19 @@ export default function Clients() {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{
-                        width: '42px',
-                        height: '42px',
-                        borderRadius: '50%',
-                        background: 'rgba(59, 130, 246, 0.12)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--primary)',
-                        fontWeight: '800',
-                        fontSize: '1.1rem'
-                      }}>
+                      <div 
+                        className={getAvatarClass(c.name)}
+                        style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: '800',
+                          fontSize: '1.1rem'
+                        }}
+                      >
                         {c.name.charAt(0)}
                       </div>
                       <div>
@@ -181,7 +271,7 @@ export default function Clients() {
                     <button 
                       style={{ background: 'none', border: 'none', color: 'var(--text-dark)', cursor: 'pointer', padding: '6px' }}
                       className="delete-icon-btn"
-                      onClick={() => handleDelete(c.id)}
+                      onClick={() => confirmDelete(c.id)}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -320,6 +410,20 @@ export default function Clients() {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        title="Supprimer le client"
+        message="Êtes-vous sûr de vouloir supprimer ce client ? Tous les projets et transactions liés seront conservés, mais dissociés de ce client."
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        onConfirm={handleDelete}
+        onCancel={() => {
+          setIsDeleteModalOpen(false);
+          setDeleteId(null);
+        }}
+      />
 
       {/* Styled JSX local hover states */}
       <style jsx global>{`

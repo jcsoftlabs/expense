@@ -6,6 +6,7 @@ import {
   TrendingUp, 
   TrendingDown, 
   Trash2, 
+  Edit,
   Loader2,
   X,
   User,
@@ -16,7 +17,8 @@ import {
   BarChart3
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
-
+import { useToast } from '@/app/components/Toast';
+import ConfirmModal from '@/app/components/ConfirmModal';
 
 interface Project {
   id: string;
@@ -41,12 +43,20 @@ interface Client {
 }
 
 export default function Projects() {
+  const { showToast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Deletion Modal States
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  // Edit State
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
 
   // Modal form states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -89,17 +99,55 @@ export default function Projects() {
   }
 
   // Handle project creation
+  function startEdit(project: Project) {
+    setEditingProjectId(project.id);
+    setFormData({
+      name: project.name,
+      description: project.description || '',
+      client_id: project.client_id || '',
+      budget: project.budget ? project.budget.toString() : '',
+      status: project.status,
+      currency: project.currency,
+      created_at: project.created_at ? project.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
+    });
+    setIsModalOpen(true);
+  }
+
+  function closeModal() {
+    setIsModalOpen(false);
+    setEditingProjectId(null);
+    setFormData({
+      name: '',
+      description: '',
+      client_id: '',
+      budget: '',
+      status: 'ACTIVE',
+      currency: 'USD',
+      created_at: new Date().toISOString().split('T')[0]
+    });
+  }
+
+  function openNewProjectModal() {
+    closeModal();
+    setIsModalOpen(true);
+  }
+
+  // Handle project creation or edit
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!formData.name) {
-      alert('Le nom du projet est requis');
+      showToast('Le nom du projet est requis', 'warning');
       return;
     }
 
     try {
       setSubmitting(true);
-      const res = await fetch('/api/projects', {
-        method: 'POST',
+      const isEditing = !!editingProjectId;
+      const url = isEditing ? `/api/projects/${editingProjectId}` : '/api/projects';
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
@@ -109,49 +157,79 @@ export default function Projects() {
         })
       });
 
-      if (!res.ok) throw new Error("Erreur lors de la création du projet");
+      if (!res.ok) throw new Error(isEditing ? "Erreur lors de la modification du projet" : "Erreur lors de la création du projet");
 
-      setIsModalOpen(false);
-      // Reset form
-      setFormData({
-        name: '',
-        description: '',
-        client_id: '',
-        budget: '',
-        status: 'ACTIVE',
-        currency: 'USD',
-        created_at: new Date().toISOString().split('T')[0]
-      });
+      showToast(isEditing ? 'Projet modifié avec succès !' : 'Projet créé avec succès !', 'success');
+      closeModal();
       fetchData(); // reload
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message || 'Erreur lors de la soumission.', 'error');
     } finally {
       setSubmitting(false);
     }
   }
 
+  function confirmDelete(id: string) {
+    setDeleteId(id);
+    setIsDeleteModalOpen(true);
+  }
+
   // Handle project deletion
-  async function handleDelete(id: string) {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce projet ? Les transactions associées ne seront pas supprimées, mais dissociées du projet.')) return;
+  async function handleDelete() {
+    if (!deleteId) return;
 
     try {
-      const res = await fetch(`/api/projects/${id}`, {
+      const res = await fetch(`/api/projects/${deleteId}`, {
         method: 'DELETE'
       });
 
       if (!res.ok) throw new Error('Impossible de supprimer le projet.');
       
-      setProjects(projects.filter(p => p.id !== id));
+      showToast('Projet supprimé avec succès !', 'success');
+      setProjects(projects.filter(p => p.id !== deleteId));
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message || 'Erreur lors de la suppression.', 'error');
+    } finally {
+      setIsDeleteModalOpen(false);
+      setDeleteId(null);
     }
   }
 
   if (loading && projects.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '15px' }}>
-        <Loader2 className="animate-spin" size={40} color="var(--primary)" />
-        <p>Analyse de la rentabilité des projets...</p>
+      <div>
+        {/* Header Skeleton */}
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '35px', flexWrap: 'wrap', gap: '20px' }}>
+          <div>
+            <div className="skeleton" style={{ width: '320px', height: '36px', marginBottom: '8px' }}></div>
+            <div className="skeleton" style={{ width: '480px', height: '16px' }}></div>
+          </div>
+          <div className="skeleton" style={{ width: '160px', height: '40px', borderRadius: '8px' }}></div>
+        </header>
+
+        {/* Card Grid Skeleton */}
+        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px' }}>
+          {[1, 2, 3].map(idx => (
+            <div key={idx} className="skeleton-card" style={{ minHeight: '280px', padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <div className="skeleton" style={{ width: '38px', height: '38px', borderRadius: '8px' }}></div>
+                  <div>
+                    <div className="skeleton" style={{ width: '150px', height: '18px', marginBottom: '6px' }}></div>
+                    <div className="skeleton" style={{ width: '100px', height: '12px' }}></div>
+                  </div>
+                </div>
+                <div className="skeleton" style={{ width: '80px', height: '24px', borderRadius: '20px' }}></div>
+              </div>
+              <div className="skeleton" style={{ width: '100%', height: '40px', marginBottom: '16px' }}></div>
+              <div className="skeleton" style={{ width: '100%', height: '80px', borderRadius: '10px', marginBottom: '16px' }}></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', borderTop: '1px solid var(--border-glass)', paddingTop: '15px' }}>
+                <div className="skeleton" style={{ width: '100px', height: '32px' }}></div>
+                <div className="skeleton" style={{ width: '80px', height: '32px' }}></div>
+              </div>
+            </div>
+          ))}
+        </section>
       </div>
     );
   }
@@ -164,7 +242,7 @@ export default function Projects() {
           <h1 style={{ fontSize: '2.1rem', marginBottom: '6px' }}>Planificateur & Rentabilité Projets</h1>
           <p>Suivez l'avancement de vos projets techniques et analysez votre marge brute en temps réel.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+        <button className="btn btn-primary" onClick={openNewProjectModal}>
           <Plus size={18} /> Nouveau Projet
         </button>
       </header>
@@ -172,8 +250,39 @@ export default function Projects() {
       {/* Projects Grid */}
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px' }}>
         {projects.length === 0 ? (
-          <div style={{ gridColumn: '1 / -1', padding: '50px 20px', textAlign: 'center', color: 'var(--text-dark)' }} className="glass-panel">
-            Aucun projet enregistré pour le moment.
+          <div style={{ 
+            gridColumn: '1 / -1', 
+            padding: '60px 20px', 
+            textAlign: 'center', 
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '16px'
+          }} className="glass-panel empty-state">
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.02)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-dark)',
+              border: '1px solid var(--border-glass)',
+              marginBottom: '8px'
+            }}>
+              <Briefcase size={28} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.25rem', color: '#ffffff', marginBottom: '6px' }}>Aucun projet enregistré</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '400px', margin: '0 auto' }}>
+                Lancez un nouveau projet pour planifier ses jalons, son budget prévisionnel et analyser vos marges bénéficiaires.
+              </p>
+            </div>
+            <button className="btn btn-primary" onClick={() => setIsModalOpen(true)} style={{ marginTop: '8px' }}>
+              <Plus size={16} /> Créer votre premier projet
+            </button>
           </div>
         ) : (
           projects.map((p) => {
@@ -190,9 +299,9 @@ export default function Projects() {
               PIPELINE: 'Opportunité'
             };
             const statusBadges: { [key: string]: string } = {
-              ACTIVE: 'badge-warning',
+              ACTIVE: 'badge-success',
               COMPLETED: 'badge-success',
-              ON_HOLD: 'badge-danger',
+              ON_HOLD: 'badge-neutral',
               PIPELINE: 'badge-warning'
             };
 
@@ -241,6 +350,7 @@ export default function Projects() {
                     </div>
 
                     <span className={`badge ${statusBadges[p.status]}`}>
+                      {p.status === 'COMPLETED' && <CheckCircle2 size={12} style={{ marginRight: '2px' }} />}
                       {statusLabels[p.status]}
                     </span>
                   </div>
@@ -305,9 +415,16 @@ export default function Projects() {
                     </div>
 
                     <button 
+                      style={{ background: 'none', border: 'none', color: 'var(--text-dark)', cursor: 'pointer', padding: '6px', marginRight: '4px' }}
+                      className="edit-icon-btn"
+                      onClick={() => startEdit(p)}
+                    >
+                      <Edit size={15} />
+                    </button>
+                    <button 
                       style={{ background: 'none', border: 'none', color: 'var(--text-dark)', cursor: 'pointer', padding: '6px' }}
                       className="delete-icon-btn"
-                      onClick={() => handleDelete(p.id)}
+                      onClick={() => confirmDelete(p.id)}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -324,8 +441,8 @@ export default function Projects() {
         <div className="modal-overlay">
           <div className="modal-container">
             <div className="modal-header">
-              <h3 className="modal-title">Créer un projet</h3>
-              <button className="modal-close" onClick={() => setIsModalOpen(false)}>
+              <h3 className="modal-title">{editingProjectId ? "Modifier le projet" : "Créer un projet"}</h3>
+              <button className="modal-close" onClick={closeModal}>
                 <X size={20} />
               </button>
             </div>
@@ -374,7 +491,7 @@ export default function Projects() {
               </div>
 
               {/* Client and Budget */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="form-grid-2col" style={{ gap: '16px' }}>
                 <div className="input-group">
                   <label className="input-label">Client commanditaire</label>
                   <select 
@@ -402,7 +519,7 @@ export default function Projects() {
               </div>
 
               {/* Date de Début / Création & Status Selector */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="form-grid-2col" style={{ gap: '16px' }}>
                 <div className="input-group">
                   <label className="input-label">Date de début / Création *</label>
                   <input 
@@ -440,9 +557,9 @@ export default function Projects() {
               </div>
 
               <div className="modal-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Annuler</button>
+                <button type="button" className="btn btn-secondary" onClick={closeModal}>Annuler</button>
                 <button type="submit" className="btn btn-primary" disabled={submitting}>
-                  {submitting ? 'Création...' : 'Créer le projet'}
+                  {submitting ? 'Enregistrement...' : (editingProjectId ? 'Enregistrer' : 'Créer le projet')}
                 </button>
               </div>
             </form>
@@ -450,11 +567,29 @@ export default function Projects() {
         </div>
       )}
 
+      {/* Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        title="Supprimer le projet"
+        message="Êtes-vous sûr de vouloir supprimer ce projet ? Les transactions associées ne seront pas supprimées, mais dissociées du projet."
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        onConfirm={handleDelete}
+        onCancel={() => {
+          setIsDeleteModalOpen(false);
+          setDeleteId(null);
+        }}
+      />
+
       {/* Styled JSX local hover states */}
       <style jsx global>{`
         .delete-icon-btn:hover {
           color: var(--danger) !important;
           filter: drop-shadow(0 0 5px rgba(244,63,94,0.3));
+        }
+        .edit-icon-btn:hover {
+          color: var(--primary) !important;
+          filter: drop-shadow(0 0 5px rgba(59,130,246,0.3));
         }
       `}</style>
     </div>

@@ -5,7 +5,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, description, status, client_id, budget } = body;
+    const { name, description, status, client_id, budget, currency, created_at } = body;
 
     if (!name) {
       return NextResponse.json({ error: 'Project name is required' }, { status: 400 });
@@ -18,11 +18,19 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
 
     const projectBudget = budget ? parseFloat(budget) : 0.00;
+    const projectCurrency = currency || 'USD';
 
-    await query(
-      `UPDATE projects SET name = ?, description = ?, status = ?, client_id = ?, budget = ? WHERE id = ?`,
-      [name, description || null, status || 'ACTIVE', client_id || null, projectBudget, id]
-    );
+    if (created_at) {
+      await query(
+        `UPDATE projects SET name = ?, description = ?, status = ?, client_id = ?, budget = ?, currency = ?, created_at = ? WHERE id = ?`,
+        [name, description || null, status || 'ACTIVE', client_id || null, projectBudget, projectCurrency, created_at, id]
+      );
+    } else {
+      await query(
+        `UPDATE projects SET name = ?, description = ?, status = ?, client_id = ?, budget = ?, currency = ? WHERE id = ?`,
+        [name, description || null, status || 'ACTIVE', client_id || null, projectBudget, projectCurrency, id]
+      );
+    }
 
     const [updatedProject] = await query(`SELECT * FROM projects WHERE id = ?`, [id]);
     return NextResponse.json(updatedProject);

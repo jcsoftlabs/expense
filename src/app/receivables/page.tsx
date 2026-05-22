@@ -10,9 +10,14 @@ import {
   X,
   FileText,
   User,
-  Briefcase
+  Briefcase,
+  Search
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
+import { useToast } from '@/app/components/Toast';
+import ConfirmModal from '@/app/components/ConfirmModal';
+import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
+
 
 interface Receivable {
   id: string;
@@ -42,6 +47,7 @@ interface Project {
 }
 
 export default function Receivables() {
+  const { showToast } = useToast();
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -50,8 +56,13 @@ export default function Receivables() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Filter tabs
+  // Deletion Modal States
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  // Filter tabs and search query
   const [activeTab, setActiveTab] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Modal form states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -76,9 +87,9 @@ export default function Receivables() {
     fetchData();
   }, []);
 
-  async function fetchData() {
+  async function fetchData(silent = false) {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [recRes, clientsRes, projectsRes] = await Promise.all([
         fetch('/api/receivables'),
         fetch('/api/clients'),
@@ -104,9 +115,16 @@ export default function Receivables() {
     } catch (err: any) {
       setError(err.message || 'Impossible de se connecter aux API.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
+
+  const { pullDistance, isRefreshing, isPulling } = usePullToRefresh({
+    onRefresh: async () => {
+      await fetchData(true);
+    }
+  });
+
 
   // Handle invoice payment activation opening modal
   const openPayModal = (id: string) => {
@@ -134,11 +152,12 @@ export default function Receivables() {
       if (!res.ok) throw new Error('Erreur lors de la validation du paiement.');
 
       await res.json();
+      showToast('Paiement enregistré avec succès !', 'success');
       setIsPayModalOpen(false);
       setPayingInvoiceId(null);
       fetchData(); // reload
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message || 'Erreur lors de l\'encaissement.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -148,7 +167,7 @@ export default function Receivables() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!formData.invoice_number || !formData.amount || !formData.issue_date || !formData.due_date || !formData.client_id) {
-      alert('Veuillez remplir tous les champs requis, y compris le client.');
+      showToast('Veuillez remplir tous les champs requis, y compris le client.', 'warning');
       return;
     }
 
@@ -166,6 +185,7 @@ export default function Receivables() {
 
       if (!res.ok) throw new Error("Erreur lors de la création de la facture");
 
+      showToast('Facture créée avec succès !', 'success');
       setIsModalOpen(false);
       // Reset form (retaining next invoice calculation and dates)
       setFormData({
@@ -180,46 +200,125 @@ export default function Receivables() {
       });
       fetchData(); // reload
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message || 'Erreur lors de la création.', 'error');
     } finally {
       setSubmitting(false);
     }
   }
 
+  function confirmDelete(id: string) {
+    setDeleteId(id);
+    setIsDeleteModalOpen(true);
+  }
+
   // Handle invoice deletion
-  async function handleDelete(id: string) {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) return;
+  async function handleDelete() {
+    if (!deleteId) return;
 
     try {
-      const res = await fetch(`/api/receivables/${id}`, {
+      const res = await fetch(`/api/receivables/${deleteId}`, {
         method: 'DELETE'
       });
 
       if (!res.ok) throw new Error('Impossible de supprimer la facture.');
       
-      setReceivables(receivables.filter(r => r.id !== id));
+      showToast('Facture supprimée avec succès !', 'success');
+      setReceivables(receivables.filter(r => r.id !== deleteId));
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message || 'Erreur lors de la suppression.', 'error');
+    } finally {
+      setIsDeleteModalOpen(false);
+      setDeleteId(null);
     }
   }
 
-  // Filter computation
+  // Filter and search computation
   const filteredReceivables = receivables.filter(r => {
-    if (activeTab === 'ALL') return true;
-    return r.status === activeTab;
+    const matchesTab = activeTab === 'ALL' || r.status === activeTab;
+    const matchesSearch = 
+      r.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (r.clientName && r.clientName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (r.projectName && r.projectName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (r.notes && r.notes.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesTab && matchesSearch;
   });
 
   if (loading && receivables.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '15px' }}>
-        <Loader2 className="animate-spin" size={40} color="var(--primary)" />
-        <p>Lecture du registre de facturation...</p>
+      <div>
+        {/* Header Skeleton */}
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '35px', flexWrap: 'wrap', gap: '20px' }}>
+          <div>
+            <div className="skeleton" style={{ width: '280px', height: '36px', marginBottom: '8px' }}></div>
+            <div className="skeleton" style={{ width: '420px', height: '16px' }}></div>
+          </div>
+          <div className="skeleton" style={{ width: '160px', height: '40px', borderRadius: '8px' }}></div>
+        </header>
+
+        {/* Search Bar Skeleton */}
+        <div className="skeleton" style={{ width: '100%', maxWidth: '480px', height: '42px', borderRadius: '8px', marginBottom: '24px' }}></div>
+
+        {/* Tabs Skeleton */}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '30px' }}>
+          {[1, 2, 3, 4].map(idx => (
+            <div key={idx} className="skeleton" style={{ width: '110px', height: '38px', borderRadius: '20px' }}></div>
+          ))}
+        </div>
+
+        {/* Card Grid Skeleton */}
+        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+          {[1, 2, 3].map(idx => (
+            <div key={idx} className="skeleton-card" style={{ minHeight: '220px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div className="skeleton" style={{ width: '40px', height: '40px', borderRadius: '8px' }}></div>
+                <div className="skeleton" style={{ width: '80px', height: '24px', borderRadius: '6px' }}></div>
+              </div>
+              <div className="skeleton-line lg" style={{ marginBottom: '8px' }}></div>
+              <div className="skeleton-line md" style={{ marginBottom: '8px' }}></div>
+              <div className="skeleton-line sm" style={{ width: '60%' }}></div>
+            </div>
+          ))}
+        </section>
       </div>
     );
   }
 
   return (
-    <div>
+    <div style={{ position: 'relative' }}>
+      {/* Pull to Refresh Mobile Indicator */}
+      {(isPulling || isRefreshing) && (
+        <div 
+          className="ptr-indicator" 
+          style={{ 
+            height: `${pullDistance}px`, 
+            opacity: pullDistance > 0 ? Math.min(pullDistance / 50, 1) : 0,
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            background: 'rgba(255, 255, 255, 0.02)',
+            borderBottom: '1px solid var(--border-glass)',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: '20px',
+            transition: isPulling ? 'none' : 'height 0.2s ease, opacity 0.2s ease'
+          }}
+        >
+          <Loader2 
+            className="animate-spin" 
+            size={16} 
+            color="var(--primary)" 
+            style={{ 
+              animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
+              transform: isRefreshing ? 'none' : `rotate(${pullDistance * 6}deg)`
+            }} 
+          />
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            {isRefreshing ? 'Actualisation des factures...' : 'Tirez pour rafraîchir'}
+          </span>
+        </div>
+      )}
+
       {/* Header section */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '35px', flexWrap: 'wrap', gap: '20px' }}>
         <div>
@@ -230,6 +329,19 @@ export default function Receivables() {
           <Plus size={18} /> Émettre une facture
         </button>
       </header>
+
+      {/* Search Bar */}
+      <div style={{ position: 'relative', marginBottom: '24px', maxWidth: '480px', width: '100%' }}>
+        <Search size={18} color="var(--text-dark)" style={{ position: 'absolute', left: '14px', top: '13px' }} />
+        <input
+          type="text"
+          placeholder="Rechercher par numéro, client, projet, notes..."
+          className="form-input"
+          style={{ paddingLeft: '45px' }}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
 
       {/* Filter Tabs */}
       <section style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--border-glass)', paddingBottom: '16px', marginBottom: '30px', flexWrap: 'wrap' }}>
@@ -267,8 +379,22 @@ export default function Receivables() {
       {/* Invoice Card Grid */}
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
         {filteredReceivables.length === 0 ? (
-          <div style={{ gridColumn: '1 / -1', padding: '50px 20px', textAlign: 'center', color: 'var(--text-dark)' }} className="glass-panel">
-            Aucune facture ne correspond à ce filtre.
+          <div style={{ gridColumn: '1 / -1' }} className="empty-state glass-panel">
+            <div className="empty-state-icon">
+              <FileText size={28} />
+            </div>
+            <h4 className="empty-state-title">Aucune facture</h4>
+            <p className="empty-state-subtitle">
+              {receivables.length === 0 
+                ? "Créez votre première facture professionnelle pour commencer à suivre vos paiements."
+                : "Aucune facture ne correspond à vos critères de recherche ou de filtrage."
+              }
+            </p>
+            {receivables.length === 0 && (
+              <button className="btn btn-primary" style={{ marginTop: '8px' }} onClick={() => setIsModalOpen(true)}>
+                Émettre une facture
+              </button>
+            )}
           </div>
         ) : (
           filteredReceivables.map((inv) => {
@@ -378,7 +504,7 @@ export default function Receivables() {
                     <button 
                       style={{ background: 'none', border: 'none', color: 'var(--text-dark)', cursor: 'pointer', padding: '6px' }}
                       className="delete-icon-btn"
-                      onClick={() => handleDelete(inv.id)}
+                      onClick={() => confirmDelete(inv.id)}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -432,7 +558,7 @@ export default function Receivables() {
               </div>
 
               {/* Number and Amount */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="input-group">
                   <label className="input-label">Numéro de Facture *</label>
                   <input 
@@ -459,7 +585,7 @@ export default function Receivables() {
               </div>
 
               {/* Dates */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="input-group">
                   <label className="input-label">Date d'émission *</label>
                   <input 
@@ -593,6 +719,19 @@ export default function Receivables() {
           filter: drop-shadow(0 0 5px rgba(244,63,94,0.3));
         }
       `}</style>
+      {/* Deletion Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        title="Supprimer la facture ?"
+        message="Cette action supprimera définitivement cette facture et toutes ses données associées de votre registre de facturation."
+        confirmLabel="Supprimer"
+        danger={true}
+        onConfirm={handleDelete}
+        onCancel={() => {
+          setIsDeleteModalOpen(false);
+          setDeleteId(null);
+        }}
+      />
     </div>
   );
 }

@@ -10,10 +10,13 @@ import {
   Users, 
   Briefcase,
   BarChart3,
-  Loader2
+  Loader2,
+  Lock
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import BiometricLock from '@/app/components/BiometricLock';
+import { ToastProvider } from '@/app/components/Toast';
+import ConfirmModal from '@/app/components/ConfirmModal';
 import './globals.css';
 
 export default function RootLayout({
@@ -24,6 +27,7 @@ export default function RootLayout({
   const pathname = usePathname();
   const [isLocked, setIsLocked] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [isConfirmLockOpen, setIsConfirmLockOpen] = useState(false);
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -31,7 +35,7 @@ export default function RootLayout({
     { name: 'Factures', href: '/receivables', icon: FileText },
     { name: 'Clients', href: '/clients', icon: Users },
     { name: 'Projets', href: '/projects', icon: Briefcase },
-    { name: 'Statistiques', href: '/statistics', icon: BarChart3 },
+    { name: 'Stats', href: '/statistics', icon: BarChart3 },
   ];
 
   useEffect(() => {
@@ -52,14 +56,29 @@ export default function RootLayout({
     }
   }
 
+  async function handleLockSession() {
+    try {
+      await fetch('/api/auth/biometric/pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'lock' }),
+      });
+      setIsLocked(true);
+    } catch (err) {
+      console.error('Erreur de verrouillage:', err);
+    } finally {
+      setIsConfirmLockOpen(false);
+    }
+  }
+
   return (
     <html lang="fr">
       <head>
-        <title>DevFinance - Track & Profit</title>
+        <title>DevFinance - Track &amp; Profit</title>
         <meta name="description" content="Premium finance tracker for software engineers" />
         
-        {/* PWA & Mobile Meta Tags */}
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+        {/* PWA & Mobile Meta Tags — user-scalable omitted for accessibility (WCAG 1.4.4) */}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         <meta name="theme-color" content="#080C14" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -70,95 +89,99 @@ export default function RootLayout({
       <body>
         {loading ? (
           <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: '#04060a',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 999999
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: '#04060a', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', zIndex: 999999
           }}>
             <Loader2 className="animate-spin" size={40} color="var(--primary)" />
           </div>
         ) : isLocked ? (
           <BiometricLock onUnlockSuccess={() => setIsLocked(false)} />
         ) : (
-          <div className="app-container">
-            {/* Primary Sidebar (Desktop Navigation) */}
-            <aside className="sidebar">
-              <div>
-                <div className="brand-section">
-                  <div className="brand-icon-wrapper">
-                    <img src="/icon-192.png" alt="Logo" className="brand-icon" />
+          <ToastProvider>
+            <div className="app-container">
+              {/* Primary Sidebar (Desktop Navigation) */}
+              <aside className="sidebar">
+                <div>
+                  <div className="brand-section">
+                    <div className="brand-icon-wrapper">
+                      <img src="/icon-192.png" alt="Logo" className="brand-icon" />
+                    </div>
+                    <span className="brand-name">DevFinance</span>
                   </div>
-                  <span className="brand-name">DevFinance</span>
+                  
+                  <ul className="nav-menu">
+                    {navigation.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = pathname === item.href;
+                      return (
+                        <li key={item.name} className="nav-item">
+                          <Link 
+                            href={item.href} 
+                            className={`nav-link ${isActive ? 'active' : ''}`}
+                          >
+                            <Icon />
+                            <span>{item.name}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
                 
-                <ul className="nav-menu">
-                  {navigation.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = pathname === item.href;
-                    return (
-                      <li key={item.name} className="nav-item">
-                        <Link 
-                          href={item.href} 
-                          className={`nav-link ${isActive ? 'active' : ''}`}
-                        >
-                          <Icon />
-                          <span>{item.name}</span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-              
-              <div className="sidebar-footer">
-                <div className="user-badge" style={{ cursor: 'pointer' }} onClick={async () => {
-                  if (confirm('Voulez-vous verrouiller votre session immédiatement ?')) {
-                    await fetch('/api/auth/biometric/pin', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ action: 'lock' }),
-                    });
-                    setIsLocked(true);
-                  }
-                }}>
-                  <div className="user-avatar">CJ</div>
-                  <div className="user-info">
-                    <span className="user-name">Dev User</span>
-                    <span className="user-role">Verrouiller la session</span>
+                <div className="sidebar-footer">
+                  <div
+                    className="user-badge"
+                    style={{ cursor: 'pointer', transition: 'all 0.2s ease', borderRadius: '10px', padding: '10px', border: '1px solid transparent' }}
+                    onClick={() => setIsConfirmLockOpen(true)}
+                  >
+                    <div className="user-avatar">CJ</div>
+                    <div className="user-info">
+                      <span className="user-name">Dev User</span>
+                      <span className="user-role" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Lock size={11} />
+                        Verrouiller la session
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </aside>
+              </aside>
 
-            {/* Bottom Navigation (Mobile PWA Shell) */}
-            <nav className="bottom-nav">
-              {navigation.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-                return (
-                  <Link 
-                    key={item.name} 
-                    href={item.href} 
-                    className={`bottom-nav-link ${isActive ? 'active' : ''}`}
-                  >
-                    <Icon />
-                    <span>{item.name}</span>
-                  </Link>
-                );
-              })}
-            </nav>
+              {/* Confirm Lock Session Modal */}
+              <ConfirmModal
+                isOpen={isConfirmLockOpen}
+                title="Verrouiller la session ?"
+                message="Voulez-vous verrouiller votre session immédiatement ? Vous devrez saisir à nouveau votre code PIN ou utiliser Face ID/Touch ID."
+                confirmLabel="Verrouiller"
+                danger={false}
+                onConfirm={handleLockSession}
+                onCancel={() => setIsConfirmLockOpen(false)}
+              />
 
-            {/* Main Canvas */}
-            <main className="main-content">
-              {children}
-            </main>
-          </div>
+              {/* Bottom Navigation (Mobile PWA Shell) */}
+              <nav className="bottom-nav">
+                {navigation.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link 
+                      key={item.name} 
+                      href={item.href} 
+                      className={`bottom-nav-link ${isActive ? 'active' : ''}`}
+                    >
+                      <Icon />
+                      <span>{item.name}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              {/* Main Canvas */}
+              <main className="main-content">
+                {children}
+              </main>
+            </div>
+          </ToastProvider>
         )}
 
         {/* Register Service Worker */}

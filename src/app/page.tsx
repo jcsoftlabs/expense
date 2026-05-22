@@ -19,6 +19,9 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
 import SecuritySettings from '@/app/components/SecuritySettings';
+import { useToast } from '@/app/components/Toast';
+import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
+
 
 
 
@@ -69,6 +72,7 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
+  const { showToast } = useToast();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -85,9 +89,9 @@ export default function Dashboard() {
   const [aiSubmitting, setAiSubmitting] = useState(false);
   const [aiResponse, setAiResponse] = useState<{ success: boolean; message: string; extracted?: any } | null>(null);
 
-  async function fetchDashboard() {
+  async function fetchDashboard(silent = false) {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       let url = '/api/dashboard';
       const params = new URLSearchParams();
       if (startDate) params.append('startDate', startDate);
@@ -104,9 +108,16 @@ export default function Dashboard() {
     } catch (err: any) {
       setError(err.message || 'Une erreur est survenue');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
+
+  const { pullDistance, isRefreshing, isPulling } = usePullToRefresh({
+    onRefresh: async () => {
+      await fetchDashboard(true);
+    }
+  });
+
 
   const applyPreset = (preset: 'all' | 'month' | '3months') => {
     const today = new Date();
@@ -145,10 +156,14 @@ export default function Dashboard() {
       const json = await res.json();
       setAiResponse(json);
       if (json.success) {
+        showToast(json.message || 'Transaction enregistrée avec succès !', 'success');
         setAiText(''); // Clear input
         fetchDashboard(); // Reactive UI refresh!
+      } else {
+        showToast(json.message || "Impossible d'analyser la phrase comptable.", 'error');
       }
     } catch (err: any) {
+      showToast("Une erreur de connexion est survenue.", 'error');
       setAiResponse({
         success: false,
         message: "Une erreur de connexion est survenue lors de l'envoi de votre phrase comptable."
@@ -158,11 +173,120 @@ export default function Dashboard() {
     }
   }
 
-  if (loading) {
+  if (loading && !data) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '15px' }}>
-        <Loader2 className="animate-spin" size={40} color="var(--primary)" />
-        <p>Chargement de votre cockpit financier...</p>
+      <div>
+        {/* Welcome Header Skeleton */}
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '20px' }}>
+          <div>
+            <div className="skeleton" style={{ width: '220px', height: '36px', marginBottom: '8px' }}></div>
+            <div className="skeleton" style={{ width: '380px', height: '16px' }}></div>
+          </div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div className="skeleton" style={{ width: '160px', height: '40px', borderRadius: '8px' }}></div>
+            <div className="skeleton" style={{ width: '140px', height: '40px', borderRadius: '8px' }}></div>
+          </div>
+        </header>
+
+        {/* Date Filter Panel Skeleton */}
+        <div className="skeleton-card" style={{ padding: '16px 20px', marginBottom: '35px', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+          <div className="skeleton" style={{ width: '280px', height: '24px' }}></div>
+          <div className="skeleton" style={{ width: '320px', height: '24px' }}></div>
+        </div>
+
+        {/* AI Command Center Skeleton */}
+        <div className="skeleton-card" style={{ padding: '24px', marginBottom: '35px', minHeight: '140px' }}>
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
+            <div className="skeleton" style={{ width: '28px', height: '28px', borderRadius: '8px' }}></div>
+            <div className="skeleton" style={{ width: '200px', height: '24px' }}></div>
+          </div>
+          <div className="skeleton" style={{ width: '100%', height: '42px', borderRadius: '8px' }}></div>
+        </div>
+
+        {/* Summary Widgets Grid Skeleton */}
+        <section className="dashboard-grid" style={{ marginBottom: '35px' }}>
+          <div className="skeleton-card" style={{ minHeight: '130px' }}>
+            <div className="skeleton-line sm" style={{ marginBottom: '8px' }}></div>
+            <div className="skeleton-line lg" style={{ marginBottom: '6px' }}></div>
+            <div className="skeleton-line md" style={{ marginBottom: '12px' }}></div>
+            <div className="skeleton-line sm" style={{ width: '90%' }}></div>
+          </div>
+          <div className="skeleton-card" style={{ minHeight: '130px' }}>
+            <div className="skeleton-line sm" style={{ marginBottom: '8px' }}></div>
+            <div className="skeleton-line lg" style={{ marginBottom: '6px' }}></div>
+            <div className="skeleton-line md" style={{ marginBottom: '12px' }}></div>
+            <div className="skeleton-line sm" style={{ width: '90%' }}></div>
+          </div>
+          <div className="skeleton-card" style={{ minHeight: '130px' }}>
+            <div className="skeleton-line sm" style={{ marginBottom: '8px' }}></div>
+            <div className="skeleton-line lg" style={{ marginBottom: '6px' }}></div>
+            <div className="skeleton-line md" style={{ marginBottom: '12px' }}></div>
+            <div className="skeleton-line sm" style={{ width: '90%' }}></div>
+          </div>
+          <div className="skeleton-card" style={{ minHeight: '130px' }}>
+            <div className="skeleton-line sm" style={{ marginBottom: '8px' }}></div>
+            <div className="skeleton-line lg" style={{ marginBottom: '6px' }}></div>
+            <div className="skeleton-line md" style={{ marginBottom: '12px' }}></div>
+            <div className="skeleton-line sm" style={{ width: '90%' }}></div>
+          </div>
+        </section>
+
+        {/* Two Column Layout Skeleton */}
+        <section style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '30px' }} className="responsive-container">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            {/* Chart Skeleton */}
+            <div className="skeleton-card" style={{ minHeight: '260px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                <div className="skeleton-line md" style={{ width: '150px' }}></div>
+                <div className="skeleton-line sm" style={{ width: '80px' }}></div>
+              </div>
+              <div className="skeleton" style={{ flex: 1, minHeight: '160px', width: '100%', borderRadius: '8px' }}></div>
+            </div>
+            {/* Invoices Skeleton */}
+            <div className="skeleton-card" style={{ minHeight: '200px' }}>
+              <div className="skeleton-line md" style={{ width: '180px', marginBottom: '15px' }}></div>
+              <div className="skeleton" style={{ height: '70px', width: '100%', borderRadius: '8px', marginBottom: '10px' }}></div>
+              <div className="skeleton" style={{ height: '70px', width: '100%', borderRadius: '8px' }}></div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            {/* Activities Skeleton */}
+            <div className="skeleton-card" style={{ minHeight: '220px' }}>
+              <div className="skeleton-line md" style={{ width: '120px', marginBottom: '15px' }}></div>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', alignItems: 'center' }}>
+                <div className="skeleton" style={{ width: '32px', height: '32px', borderRadius: '50%' }}></div>
+                <div style={{ flex: 1 }}>
+                  <div className="skeleton-line md" style={{ marginBottom: '6px' }}></div>
+                  <div className="skeleton-line sm"></div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', alignItems: 'center' }}>
+                <div className="skeleton" style={{ width: '32px', height: '32px', borderRadius: '50%' }}></div>
+                <div style={{ flex: 1 }}>
+                  <div className="skeleton-line md" style={{ marginBottom: '6px' }}></div>
+                  <div className="skeleton-line sm"></div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <div className="skeleton" style={{ width: '32px', height: '32px', borderRadius: '50%' }}></div>
+                <div style={{ flex: 1 }}>
+                  <div className="skeleton-line md" style={{ marginBottom: '6px' }}></div>
+                  <div className="skeleton-line sm"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* CRM Quick links skeleton */}
+            <div className="skeleton-card" style={{ minHeight: '140px' }}>
+              <div className="skeleton-line md" style={{ width: '140px', marginBottom: '15px' }}></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="skeleton" style={{ height: '70px', borderRadius: '8px' }}></div>
+                <div className="skeleton" style={{ height: '70px', borderRadius: '8px' }}></div>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     );
   }
@@ -223,7 +347,41 @@ export default function Dashboard() {
     : '';
 
   return (
-    <div>
+    <div style={{ position: 'relative' }}>
+      {/* Pull to Refresh Mobile Indicator */}
+      {(isPulling || isRefreshing) && (
+        <div 
+          className="ptr-indicator" 
+          style={{ 
+            height: `${pullDistance}px`, 
+            opacity: pullDistance > 0 ? Math.min(pullDistance / 50, 1) : 0,
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            background: 'rgba(255, 255, 255, 0.02)',
+            borderBottom: '1px solid var(--border-glass)',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: '20px',
+            transition: isPulling ? 'none' : 'height 0.2s ease, opacity 0.2s ease'
+          }}
+        >
+          <Loader2 
+            className="animate-spin" 
+            size={16} 
+            color="var(--primary)" 
+            style={{ 
+              animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
+              transform: isRefreshing ? 'none' : `rotate(${pullDistance * 6}deg)`
+            }} 
+          />
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            {isRefreshing ? 'Actualisation des données...' : 'Tirez pour rafraîchir'}
+          </span>
+        </div>
+      )}
+
       {/* Welcome Header */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '20px' }}>
         <div>
@@ -419,6 +577,48 @@ export default function Dashboard() {
             Saisir <Zap size={14} />
           </button>
         </form>
+
+        {/* Suggestion Chips */}
+        <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Suggestions :</span>
+          {[
+            "Revenu de 500$",
+            "Dépense hosting 12$",
+            "Facture client Jean"
+          ].map((suggestion, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => setAiText(suggestion)}
+              style={{
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '20px',
+                padding: '4px 12px',
+                color: '#e2e8f0',
+                fontSize: '0.78rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(139, 92, 246, 0.12)';
+                e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.3)';
+                e.currentTarget.style.color = '#ffffff';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                e.currentTarget.style.color = '#e2e8f0';
+              }}
+            >
+              <Sparkles size={11} style={{ opacity: 0.7 }} />
+              {suggestion}
+            </button>
+          ))}
+        </div>
 
         {/* AI Action response area */}
         {aiResponse && (
@@ -672,8 +872,14 @@ export default function Dashboard() {
             </div>
 
             {upcomingReceivables.length === 0 ? (
-              <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--text-dark)' }}>
-                Excellente nouvelle ! Aucune facture n'est en attente de paiement.
+              <div className="empty-state">
+                <div className="empty-state-icon" style={{ color: 'var(--success)' }}>
+                  <CheckCircle2 size={28} />
+                </div>
+                <h4 className="empty-state-title">Toutes les factures sont payées</h4>
+                <p className="empty-state-subtitle">
+                  Félicitations ! Vous n'avez aucune facture en attente de recouvrement actuellement.
+                </p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -721,8 +927,14 @@ export default function Dashboard() {
             </div>
 
             {recentTransactions.length === 0 ? (
-              <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--text-dark)' }}>
-                Aucune transaction enregistrée pour le moment.
+              <div className="empty-state">
+                <div className="empty-state-icon">
+                  <Clock size={28} />
+                </div>
+                <h4 className="empty-state-title">Aucune transaction</h4>
+                <p className="empty-state-subtitle">
+                  Enregistrez votre première opération financière manuellement ou en langage naturel.
+                </p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

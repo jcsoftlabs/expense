@@ -15,6 +15,11 @@ import {
   User
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
+import { useToast } from '@/app/components/Toast';
+import ConfirmModal from '@/app/components/ConfirmModal';
+import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
+
+
 
 interface Transaction {
   id: string;
@@ -67,6 +72,7 @@ function PaymentBadge({ method }: { method: string }) {
 }
 
 export default function Transactions() {
+  const { showToast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -74,6 +80,14 @@ export default function Transactions() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Deletion Modal States
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  // Client-side Sorting States
+  const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Responsive mode detection
   const [isMobile, setIsMobile] = useState(false);
@@ -104,9 +118,9 @@ export default function Transactions() {
     payment_method: ''
   });
 
-  async function fetchData() {
+  async function fetchData(silent = false) {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       let txnsUrl = '/api/transactions';
       const params = new URLSearchParams();
       if (startDate) params.append('startDate', startDate);
@@ -128,9 +142,16 @@ export default function Transactions() {
     } catch (err: any) {
       setError(err.message || 'Impossible de se connecter aux API.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
+
+  const { pullDistance, isRefreshing, isPulling } = usePullToRefresh({
+    onRefresh: async () => {
+      await fetchData(true);
+    }
+  });
+
 
   useEffect(() => { fetchData(); }, []);
   useEffect(() => { fetchData(); }, [startDate, endDate]);
@@ -138,7 +159,7 @@ export default function Transactions() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!formData.amount || !formData.date || !formData.category || !formData.description) {
-      alert('Veuillez remplir tous les champs requis');
+      showToast('Veuillez remplir tous les champs requis', 'warning');
       return;
     }
     try {
@@ -155,24 +176,34 @@ export default function Transactions() {
         })
       });
       if (!res.ok) throw new Error('Erreur lors de la création de la transaction');
+      showToast('Transaction enregistrée avec succès !', 'success');
       setIsModalOpen(false);
       setFormData({ type: 'INCOME', amount: '', date: new Date().toISOString().split('T')[0], category: 'Freelance Dev', description: '', currency: 'USD', client_id: '', project_id: '', payment_method: '' });
       fetchData();
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message || 'Erreur lors de la création.', 'error');
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette transaction ?')) return;
+  function confirmDelete(id: string) {
+    setDeleteId(id);
+    setIsDeleteModalOpen(true);
+  }
+
+  async function handleDelete() {
+    if (!deleteId) return;
     try {
-      const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/transactions/${deleteId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Impossible de supprimer la transaction.');
-      setTransactions(transactions.filter(t => t.id !== id));
+      showToast('Transaction supprimée avec succès !', 'success');
+      setTransactions(transactions.filter(t => t.id !== deleteId));
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message || 'Impossible de supprimer la transaction.', 'error');
+    } finally {
+      setIsDeleteModalOpen(false);
+      setDeleteId(null);
     }
   }
 
@@ -190,17 +221,91 @@ export default function Transactions() {
     return matchesType && matchesSearch;
   });
 
+  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
+    if (sortBy === 'date') {
+      const timeA = new Date(a.date).getTime();
+      const timeB = new Date(b.date).getTime();
+      return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+    } else {
+      return sortOrder === 'desc' ? b.amount - a.amount : a.amount - b.amount;
+    }
+  });
+
   if (loading && transactions.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '15px' }}>
-        <Loader2 className="animate-spin" size={40} color="var(--primary)" />
-        <p>Lecture du grand livre...</p>
+      <div>
+        {/* Header Skeleton */}
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '35px', flexWrap: 'wrap', gap: '20px' }}>
+          <div>
+            <div className="skeleton" style={{ width: '240px', height: '36px', marginBottom: '8px' }}></div>
+            <div className="skeleton" style={{ width: '400px', height: '16px' }}></div>
+          </div>
+          <div className="skeleton" style={{ width: '180px', height: '40px', borderRadius: '8px' }}></div>
+        </header>
+
+        {/* Filter Skeleton */}
+        <div className="skeleton-card" style={{ padding: '20px', minHeight: '120px', marginBottom: '30px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+            <div className="skeleton" style={{ width: '220px', height: '38px', borderRadius: '8px' }}></div>
+            <div className="skeleton" style={{ width: '300px', height: '38px', borderRadius: '8px' }}></div>
+          </div>
+          <div className="skeleton" style={{ width: '100%', height: '1px' }}></div>
+        </div>
+
+        {/* List Skeletons */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {[1, 2, 3, 4].map(idx => (
+            <div key={idx} className="skeleton-card" style={{ padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ flex: 1 }}>
+                  <div className="skeleton-line lg" style={{ marginBottom: '8px' }}></div>
+                  <div className="skeleton-line sm" style={{ width: '40%' }}></div>
+                </div>
+                <div className="skeleton" style={{ width: '100px', height: '24px', borderRadius: '6px' }}></div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div style={{ position: 'relative' }}>
+      {/* Pull to Refresh Mobile Indicator */}
+      {(isPulling || isRefreshing) && (
+        <div 
+          className="ptr-indicator" 
+          style={{ 
+            height: `${pullDistance}px`, 
+            opacity: pullDistance > 0 ? Math.min(pullDistance / 50, 1) : 0,
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            background: 'rgba(255, 255, 255, 0.02)',
+            borderBottom: '1px solid var(--border-glass)',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: '20px',
+            transition: isPulling ? 'none' : 'height 0.2s ease, opacity 0.2s ease'
+          }}
+        >
+          <Loader2 
+            className="animate-spin" 
+            size={16} 
+            color="var(--primary)" 
+            style={{ 
+              animation: isRefreshing ? 'spin 1s linear infinite' : 'none',
+              transform: isRefreshing ? 'none' : `rotate(${pullDistance * 6}deg)`
+            }} 
+          />
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            {isRefreshing ? 'Actualisation du journal...' : 'Tirez pour rafraîchir'}
+          </span>
+        </div>
+      )}
+
       {/* Header */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '35px', flexWrap: 'wrap', gap: '20px' }}>
         <div>
@@ -259,6 +364,39 @@ export default function Transactions() {
               Réinitialiser
             </button>
           )}
+
+          {/* Interactive Sorting Controls */}
+          <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Trier par :</span>
+            <button
+              type="button"
+              className={`sort-btn ${sortBy === 'date' ? 'active' : ''}`}
+              onClick={() => {
+                if (sortBy === 'date') {
+                  setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+                } else {
+                  setSortBy('date');
+                  setSortOrder('desc');
+                }
+              }}
+            >
+              Date {sortBy === 'date' ? (sortOrder === 'desc' ? '▼' : '▲') : '⇅'}
+            </button>
+            <button
+              type="button"
+              className={`sort-btn ${sortBy === 'amount' ? 'active' : ''}`}
+              onClick={() => {
+                if (sortBy === 'amount') {
+                  setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+                } else {
+                  setSortBy('amount');
+                  setSortOrder('desc');
+                }
+              }}
+            >
+              Montant {sortBy === 'amount' ? (sortOrder === 'desc' ? '▼' : '▲') : '⇅'}
+            </button>
+          </div>
         </div>
       </section>
 
@@ -266,9 +404,23 @@ export default function Transactions() {
           DUAL MODE: Table (desktop) / Cards (mobile)
       —————————————————————————————————————————— */}
       <section>
-        {filteredTransactions.length === 0 ? (
-          <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-dark)' }}>
-            Aucune transaction ne correspond à vos critères.
+        {sortedTransactions.length === 0 ? (
+          <div className="empty-state glass-panel" style={{ padding: '60px 24px' }}>
+            <div className="empty-state-icon">
+              <Tag size={28} />
+            </div>
+            <h4 className="empty-state-title">Aucune transaction</h4>
+            <p className="empty-state-subtitle">
+              {transactions.length === 0 
+                ? "Commencez à suivre vos finances en ajoutant votre première entrée ou dépense."
+                : "Aucune opération ne correspond à vos critères de recherche ou de filtrage."
+              }
+            </p>
+            {transactions.length === 0 && (
+              <button className="btn btn-primary" style={{ marginTop: '8px' }} onClick={() => setIsModalOpen(true)}>
+                Ajouter transaction
+              </button>
+            )}
           </div>
 
         ) : isMobile ? (
@@ -276,7 +428,7 @@ export default function Transactions() {
              📱 MOBILE — Vue en Cartes
           ═══════════════════════════════ */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {filteredTransactions.map((t) => (
+            {sortedTransactions.map((t) => (
               <div
                 key={t.id}
                 className="glass-panel"
@@ -308,7 +460,7 @@ export default function Transactions() {
                       {t.type === 'INCOME' ? '+' : '−'}{formatCurrency(t.amount, t.currency)}
                     </span>
                     <button
-                      onClick={() => handleDelete(t.id)}
+                      onClick={() => confirmDelete(t.id)}
                       style={{
                         background: 'rgba(244,63,94,0.07)', border: '1px solid rgba(244,63,94,0.15)',
                         borderRadius: '6px', color: 'var(--danger)', cursor: 'pointer',
@@ -369,7 +521,7 @@ export default function Transactions() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTransactions.map((t) => (
+                  {sortedTransactions.map((t) => (
                     <tr key={t.id} className="tx-table-row" style={{ borderBottom: '1px solid var(--border-glass)', transition: 'var(--transition-fast)' }}>
                       <td style={{ padding: '16px 24px', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -407,7 +559,7 @@ export default function Transactions() {
                       </td>
 
                       <td style={{ padding: '16px 24px', textAlign: 'center' }}>
-                        <button className="delete-icon-btn" style={{ background: 'none', border: 'none', color: 'var(--text-dark)', cursor: 'pointer', padding: '6px' }} onClick={() => handleDelete(t.id)}>
+                        <button className="delete-icon-btn" style={{ background: 'none', border: 'none', color: 'var(--text-dark)', cursor: 'pointer', padding: '6px' }} onClick={() => confirmDelete(t.id)}>
                           <Trash2 size={16} />
                         </button>
                       </td>
@@ -454,7 +606,7 @@ export default function Transactions() {
               </div>
 
               {/* Amount & Date */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="input-group">
                   <label className="input-label">Montant ({formData.currency}) *</label>
                   <input type="number" step="0.01" placeholder="0.00" className="form-input" required value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} />
@@ -468,13 +620,42 @@ export default function Transactions() {
               {/* Category */}
               <div className="input-group">
                 <label className="input-label">Catégorie *</label>
-                <select className="form-select" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}>
+                <select 
+                  className="form-select" 
+                  value={CATEGORIES[formData.type].includes(formData.category) ? formData.category : 'Autre'} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === 'Autre') {
+                      setFormData({ ...formData, category: 'Autre' });
+                    } else {
+                      setFormData({ ...formData, category: val });
+                    }
+                  }}
+                >
                   {CATEGORIES[formData.type].map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
 
+              {/* Custom Category Input */}
+              {(!CATEGORIES[formData.type].includes(formData.category) || formData.category === 'Autre') && (
+                <div className="input-group" style={{ 
+                  marginTop: '12px',
+                  animation: 'fadeIn 0.2s ease'
+                }}>
+                  <label className="input-label">Nom de la catégorie personnalisée *</label>
+                  <input 
+                    type="text" 
+                    placeholder="Saisissez votre propre catégorie (ex: Assurance, Internet...)" 
+                    className="form-input" 
+                    required 
+                    value={formData.category === 'Autre' ? '' : formData.category} 
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value || 'Autre' })} 
+                  />
+                </div>
+              )}
+
               {/* Project & Client */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="form-grid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div className="input-group">
                   <label className="input-label">Projet</label>
                   <select className="form-select" value={formData.project_id} onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}>
@@ -524,6 +705,19 @@ export default function Transactions() {
         .tx-table-row:hover { background: rgba(255,255,255,0.015); }
         .delete-icon-btn:hover { color: var(--danger) !important; filter: drop-shadow(0 0 5px rgba(244,63,94,0.3)); }
       `}</style>
+      {/* Deletion Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        title="Supprimer la transaction ?"
+        message="Cette action est irréversible et supprimera définitivement cette transaction de vos livres comptables."
+        confirmLabel="Supprimer"
+        danger={true}
+        onConfirm={handleDelete}
+        onCancel={() => {
+          setIsDeleteModalOpen(false);
+          setDeleteId(null);
+        }}
+      />
     </div>
   );
 }

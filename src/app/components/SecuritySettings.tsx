@@ -3,8 +3,11 @@
 import { useEffect, useState } from 'react';
 import { Shield, Fingerprint, Lock, CheckCircle2, ShieldAlert, Loader2, Sparkles } from 'lucide-react';
 import { startRegistration } from '@simplewebauthn/browser';
+import { useToast } from '@/app/components/Toast';
+import ConfirmModal from '@/app/components/ConfirmModal';
 
 export default function SecuritySettings() {
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [config, setConfig] = useState<{
@@ -18,6 +21,9 @@ export default function SecuritySettings() {
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Deactivation Modal State
+  const [isDisableModalOpen, setIsDisableModalOpen] = useState(false);
 
   useEffect(() => {
     fetchStatus();
@@ -65,12 +71,14 @@ export default function SecuritySettings() {
         throw new Error(err.error || "Impossible d'enregistrer le code PIN.");
       }
 
+      showToast('Code PIN configuré avec succès !', 'success');
       setShowPinForm(false);
       setPin('');
       setConfirmPin('');
       fetchStatus();
     } catch (err: any) {
       setErrorMsg(err.message);
+      showToast(err.message || "Erreur lors de la configuration du code PIN.", 'error');
     } finally {
       setSubmitting(false);
     }
@@ -109,10 +117,12 @@ export default function SecuritySettings() {
           throw new Error(err.error || 'Validation de la clé biométrique échouée');
         }
 
+        showToast('Verrouillage biométrique activé avec succès !', 'success');
         fetchStatus();
       } catch (err: any) {
         console.error('Erreur enregistrement passkey:', err);
         setErrorMsg(err.message || 'Enregistrement biométrique annulé ou non supporté par ce navigateur/appareil.');
+        showToast(err.message || "Annulé ou non supporté.", 'warning');
       } finally {
         setSubmitting(false);
       }
@@ -127,6 +137,7 @@ export default function SecuritySettings() {
         });
 
         if (res.ok) {
+          showToast(nextEnabledState ? 'Verrouillage biométrique activé !' : 'Verrouillage biométrique désactivé.', 'info');
           fetchStatus();
         } else {
           const err = await res.json();
@@ -134,6 +145,7 @@ export default function SecuritySettings() {
         }
       } catch (err: any) {
         setErrorMsg(err.message);
+        showToast(err.message || 'Erreur lors de l\'activation.', 'error');
       } finally {
         setSubmitting(false);
       }
@@ -141,7 +153,6 @@ export default function SecuritySettings() {
   }
 
   async function handleDisableAllSecurity() {
-    if (!confirm('Êtes-vous sûr de vouloir désactiver complètement la sécurité ? Vos clés d\'accès et votre code PIN seront effacés.')) return;
     setErrorMsg(null);
     try {
       setSubmitting(true);
@@ -152,6 +163,7 @@ export default function SecuritySettings() {
       });
 
       if (res.ok) {
+        showToast('Sécurité désactivée avec succès. Clés et PIN effacés.', 'info');
         fetchStatus();
       } else {
         const err = await res.json();
@@ -159,8 +171,10 @@ export default function SecuritySettings() {
       }
     } catch (err: any) {
       setErrorMsg(err.message);
+      showToast(err.message || 'Erreur lors de la désactivation.', 'error');
     } finally {
       setSubmitting(false);
+      setIsDisableModalOpen(false);
     }
   }
 
@@ -265,7 +279,7 @@ export default function SecuritySettings() {
             <button 
               className="btn btn-secondary"
               style={{ fontSize: '0.78rem', padding: '6px 12px', borderColor: 'rgba(239, 68, 68, 0.2)', color: '#fca5a5' }}
-              onClick={handleDisableAllSecurity}
+              onClick={() => setIsDisableModalOpen(true)}
               disabled={submitting}
             >
               Désactiver
@@ -359,6 +373,17 @@ export default function SecuritySettings() {
           </div>
         </div>
       )}
+
+      {/* Confirmation of deactivation */}
+      <ConfirmModal
+        isOpen={isDisableModalOpen}
+        title="Désactiver la sécurité"
+        message="Êtes-vous sûr de vouloir désactiver complètement la sécurité ? Vos clés d'accès (biométrie) et votre code PIN seront effacés."
+        confirmLabel="Désactiver"
+        cancelLabel="Conserver"
+        onConfirm={handleDisableAllSecurity}
+        onCancel={() => setIsDisableModalOpen(false)}
+      />
 
     </div>
   );
