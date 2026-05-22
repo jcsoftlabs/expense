@@ -14,6 +14,7 @@ import {
   TrendingUp,
   FileText
 } from 'lucide-react';
+import { formatCurrency } from '@/lib/currency';
 
 interface Client {
   id: string;
@@ -22,8 +23,10 @@ interface Client {
   phone: string | null;
   company: string | null;
   projectCount: number;
-  totalPaid: string | number;
-  outstandingAmount: string | number;
+  totalPaidUSD: string | number;
+  totalPaidHTG: string | number;
+  outstandingAmountUSD: string | number;
+  outstandingAmountHTG: string | number;
   created_at: string;
 }
 
@@ -135,8 +138,12 @@ export default function Clients() {
           </div>
         ) : (
           clients.map((c) => {
-            const paid = parseFloat(c.totalPaid as string || '0');
-            const outstanding = parseFloat(c.outstandingAmount as string || '0');
+            const paidUSD = parseFloat(c.totalPaidUSD as string || '0');
+            const paidHTG = parseFloat(c.totalPaidHTG as string || '0');
+            const outstandingUSD = parseFloat(c.outstandingAmountUSD as string || '0');
+            const outstandingHTG = parseFloat(c.outstandingAmountHTG as string || '0');
+            const hasOutstanding = outstandingUSD > 0 || outstandingHTG > 0;
+
             return (
               <div 
                 key={c.id} 
@@ -202,21 +209,31 @@ export default function Clients() {
 
                 {/* Key Metrics */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                  <div style={{ background: 'rgba(0, 0, 0, 0.15)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dark)', textTransform: 'uppercase', fontWeight: '700', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div style={{ background: 'rgba(0, 0, 0, 0.15)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-glass)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dark)', textTransform: 'uppercase', fontWeight: '700', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <TrendingUp size={11} color="var(--success)" /> Facturé & Reçu
                     </div>
-                    <div style={{ fontSize: '1.02rem', fontWeight: '800', color: 'var(--success)' }}>
-                      {paid.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--success)' }}>
+                        {formatCurrency(paidUSD, 'USD')}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'rgba(74, 222, 128, 0.85)' }}>
+                        {formatCurrency(paidHTG, 'HTG')}
+                      </div>
                     </div>
                   </div>
 
-                  <div style={{ background: 'rgba(0, 0, 0, 0.15)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dark)', textTransform: 'uppercase', fontWeight: '700', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <FileText size={11} color={outstanding > 0 ? 'var(--warning)' : 'var(--text-dark)'} /> Reste à payer
+                  <div style={{ background: 'rgba(0, 0, 0, 0.15)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-glass)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dark)', textTransform: 'uppercase', fontWeight: '700', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <FileText size={11} color={hasOutstanding ? 'var(--warning)' : 'var(--text-dark)'} /> Reste à payer
                     </div>
-                    <div style={{ fontSize: '1.02rem', fontWeight: '800', color: outstanding > 0 ? 'var(--warning)' : '#ffffff' }}>
-                      {outstanding.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '800', color: outstandingUSD > 0 ? 'var(--warning)' : '#ffffff' }}>
+                        {formatCurrency(outstandingUSD, 'USD')}
+                      </div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: '700', color: outstandingHTG > 0 ? 'var(--warning)' : '#ffffff' }}>
+                        {formatCurrency(outstandingHTG, 'HTG')}
+                      </div>
                     </div>
                   </div>
                 </div>

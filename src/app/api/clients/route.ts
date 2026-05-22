@@ -12,13 +12,23 @@ export async function GET() {
         COALESCE((
           SELECT SUM(amount) 
           FROM transactions t 
-          WHERE t.client_id = c.id AND t.type = 'INCOME'
-        ), 0.00) as totalPaid,
+          WHERE t.client_id = c.id AND t.type = 'INCOME' AND t.currency = 'USD'
+        ), 0.00) as totalPaidUSD,
+        COALESCE((
+          SELECT SUM(amount) 
+          FROM transactions t 
+          WHERE t.client_id = c.id AND t.type = 'INCOME' AND t.currency = 'HTG'
+        ), 0.00) as totalPaidHTG,
         COALESCE((
           SELECT SUM(amount) 
           FROM receivables r 
-          WHERE r.client_id = c.id AND r.status != 'PAID'
-        ), 0.00) as outstandingAmount
+          WHERE r.client_id = c.id AND r.status != 'PAID' AND r.currency = 'USD'
+        ), 0.00) as outstandingAmountUSD,
+        COALESCE((
+          SELECT SUM(amount) 
+          FROM receivables r 
+          WHERE r.client_id = c.id AND r.status != 'PAID' AND r.currency = 'HTG'
+        ), 0.00) as outstandingAmountHTG
       FROM clients c
       ORDER BY c.name ASC
     `);
