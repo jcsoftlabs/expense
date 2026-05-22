@@ -323,7 +323,7 @@ export default function Transactions() {
               </thead>
               <tbody>
                 {filteredTransactions.map((t) => (
-                  <tr key={t.id} style={{ borderBottom: '1px solid var(--border-glass)', transition: 'var(--transition-fast)' }} className="table-row-hover">
+                  <tr key={t.id} className="tx-table-row" style={{ borderBottom: '1px solid var(--border-glass)', transition: 'var(--transition-fast)' }}>
                     {/* Date */}
                     <td style={{ padding: '16px 24px', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

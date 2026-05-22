@@ -547,7 +547,7 @@ export default function Statistics() {
       </section>
 
       {/* Main Charts Canvas (Grids) */}
-      <section style={{ 
+      <section className="stats-charts-grid" style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', 
         gap: '24px',

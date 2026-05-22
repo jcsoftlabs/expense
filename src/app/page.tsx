@@ -230,7 +230,7 @@ export default function Dashboard() {
           <h1 style={{ fontSize: '2.1rem', marginBottom: '6px' }}>Cockpit Financier</h1>
           <p>Bonjour. Suivez vos revenus en USD et HTG de manière consolidée.</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div className="dashboard-header-actions" style={{ display: 'flex', gap: '12px' }}>
           <Link href="/transactions" className="btn btn-secondary">
             <Plus size={18} /> Nouvelle transaction
           </Link>

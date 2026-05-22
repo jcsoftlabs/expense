@@ -338,10 +338,80 @@ p {
   }
   .main-content {
     margin-left: 0;
-    padding: 20px;
+    padding: 16px;
     padding-bottom: 95px; /* bottom nav padding offset */
   }
+
+  /* Dashboard header: stack action buttons on mobile */
+  .dashboard-header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .dashboard-header-actions a,
+  .dashboard-header-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Modal: full width on small screens */
+  .modal-container {
+    width: calc(100% - 24px) !important;
+    max-width: 100% !important;
+    margin: 12px;
+    padding: 20px;
+    border-radius: var(--radius-md);
+  }
+
+  /* Transaction table: horizontal scroll remains but with smaller padding */
+  .tx-table-row td {
+    padding: 12px 14px !important;
+    font-size: 0.82rem;
+  }
+
+  /* Statistics charts grid: force single column on mobile */
+  .stats-charts-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Filter bar: stack vertically */
+  .filter-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* h1 sizing on mobile */
+  h1 {
+    font-size: 1.6rem !important;
+  }
 }
+
+@media (max-width: 480px) {
+  .main-content {
+    padding: 12px;
+    padding-bottom: 90px;
+  }
+
+  /* Tighten summary cards on very small screens */
+  .summary-card {
+    padding: 16px !important;
+  }
+  .summary-value {
+    font-size: 1.4rem !important;
+  }
+
+  /* Modal full screen on very small phones */
+  .modal-container {
+    width: 100% !important;
+    border-radius: var(--radius-sm) !important;
+    margin: 0 !important;
+    min-height: auto;
+  }
+  .modal-overlay {
+    align-items: flex-end;
+    padding-bottom: 0;
+  }
+}
+
 
 /* Premium Form Elements */
 .input-group {
