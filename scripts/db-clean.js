@@ -1,6 +1,11 @@
 const mysql = require('mysql2/promise');
 
-const DATABASE_URL = process.env.DATABASE_URL || "mysql://root:MvEXmPGTEEhIMwtQXEGKhnwHdtOpcylY@kodama.proxy.rlwy.net:10549/railway";
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  console.error("DATABASE_URL variable is missing in environment configuration.");
+  process.exit(1);
+}
 
 async function main() {
   console.log('Connexion à la base de données MySQL pour nettoyage...');

@@ -1,6 +1,10 @@
 import mysql from 'mysql2/promise';
 
-const DATABASE_URL = process.env.DATABASE_URL || "mysql://root:MvEXmPGTEEhIMwtQXEGKhnwHdtOpcylY@kodama.proxy.rlwy.net:10549/railway";
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  throw new Error("DATABASE_URL variable is missing in environment configuration.");
+}
 
 // Ensure global pool cache so Next.js HMR doesn't spawn endless pools
 interface GlobalWithDb {
