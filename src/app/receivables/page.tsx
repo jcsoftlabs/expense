@@ -28,6 +28,7 @@ interface Receivable {
   projectName?: string;
   clientCompany?: string;
   notes?: string;
+  payment_method?: string;
 }
 
 interface Client {
@@ -65,6 +66,12 @@ export default function Receivables() {
     notes: ''
   });
 
+  // Pay Invoice Modal States
+  const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+  const [payingInvoiceId, setPayingInvoiceId] = useState<string | null>(null);
+  const [payMethod, setPayMethod] = useState<string>('CASH');
+  const [payDate, setPayDate] = useState<string>(new Date().toISOString().split('T')[0]);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -101,22 +108,39 @@ export default function Receivables() {
     }
   }
 
-  // Handle invoice payment activation
-  async function handleMarkPaid(id: string) {
-    if (!confirm('Voulez-vous marquer cette facture comme Payée ? Cela va automatiquement générer une entrée de Revenu correspondante dans votre Journal.')) return;
+  // Handle invoice payment activation opening modal
+  const openPayModal = (id: string) => {
+    setPayingInvoiceId(id);
+    setPayMethod('CASH');
+    setPayDate(new Date().toISOString().split('T')[0]);
+    setIsPayModalOpen(true);
+  };
+
+  async function submitPayment(e: React.FormEvent) {
+    e.preventDefault();
+    if (!payingInvoiceId) return;
 
     try {
-      const res = await fetch(`/api/receivables/${id}/pay`, {
-        method: 'POST'
+      setSubmitting(true);
+      const res = await fetch(`/api/receivables/${payingInvoiceId}/pay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentMethod: payMethod,
+          paymentDate: payDate
+        })
       });
 
       if (!res.ok) throw new Error('Erreur lors de la validation du paiement.');
 
       await res.json();
-      alert('Paiement enregistré ! La facture est marquée comme payée et le revenu a été ajouté dans votre journal.');
+      setIsPayModalOpen(false);
+      setPayingInvoiceId(null);
       fetchData(); // reload
     } catch (err: any) {
       alert(err.message);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -331,14 +355,24 @@ export default function Receivables() {
                       <button 
                         className="btn btn-success" 
                         style={{ padding: '6px 12px', fontSize: '0.78rem', borderRadius: '6px' }}
-                        onClick={() => handleMarkPaid(inv.id)}
+                        onClick={() => openPayModal(inv.id)}
                       >
                         <CheckCircle2 size={13} /> Encaisser
                       </button>
                     ) : (
-                      <span style={{ fontSize: '0.78rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
-                        <CheckCircle2 size={13} /> Rapprochée
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
+                        <span style={{ fontSize: '0.78rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
+                          <CheckCircle2 size={13} /> Rapprochée
+                        </span>
+                        {inv.payment_method && (
+                          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                            {inv.payment_method === 'CASH' && '💵 Espèces'}
+                            {inv.payment_method === 'VIREMENT' && '🏦 Virement'}
+                            {inv.payment_method === 'CHEQUE' && '✍️ Chèque'}
+                            {inv.payment_method === 'MOBILE_MONEY' && '📱 Mobile'}
+                          </span>
+                        )}
+                      </div>
                     )}
 
                     <button 
@@ -494,6 +528,57 @@ export default function Receivables() {
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Annuler</button>
                 <button type="submit" className="btn btn-primary" disabled={submitting}>
                   {submitting ? 'Création...' : 'Créer la facture'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Pay Invoice Modal Dialog */}
+      {isPayModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-container" style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Encaisser la Facture</h3>
+              <button className="modal-close" onClick={() => setIsPayModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={submitPayment}>
+              {/* Payment Method Selector */}
+              <div className="input-group">
+                <label className="input-label">Moyen de paiement *</label>
+                <select 
+                  className="form-select"
+                  value={payMethod}
+                  onChange={(e) => setPayMethod(e.target.value)}
+                  required
+                >
+                  <option value="CASH">💵 Espèces (Cash)</option>
+                  <option value="VIREMENT">🏦 Virement Bancaire</option>
+                  <option value="CHEQUE">✍️ Chèque</option>
+                  <option value="MOBILE_MONEY">📱 Mobile Money (MonCash/Natcash)</option>
+                </select>
+              </div>
+
+              {/* Payment Date */}
+              <div className="input-group">
+                <label className="input-label">Date de paiement réelle *</label>
+                <input 
+                  type="date" 
+                  className="form-input" 
+                  required 
+                  value={payDate}
+                  onChange={(e) => setPayDate(e.target.value)}
+                />
+              </div>
+
+              <div className="modal-actions" style={{ marginTop: '25px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setIsPayModalOpen(false)}>Annuler</button>
+                <button type="submit" className="btn btn-success" disabled={submitting}>
+                  {submitting ? 'Encaissement...' : 'Confirmer l\'encaissement'}
                 </button>
               </div>
             </form>

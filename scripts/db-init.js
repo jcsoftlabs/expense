@@ -58,6 +58,7 @@ async function main() {
       project_id VARCHAR(36),
       client_id VARCHAR(36),
       currency VARCHAR(3) NOT NULL DEFAULT 'USD',
+      payment_method VARCHAR(50) DEFAULT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
       FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL
@@ -78,6 +79,7 @@ async function main() {
       project_id VARCHAR(36),
       notes TEXT,
       currency VARCHAR(3) NOT NULL DEFAULT 'USD',
+      payment_method VARCHAR(50) DEFAULT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL,
       FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL

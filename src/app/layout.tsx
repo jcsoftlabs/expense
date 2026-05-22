@@ -9,6 +9,7 @@ import {
   FileText, 
   Users, 
   Briefcase,
+  BarChart3,
   Loader2
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -30,6 +31,7 @@ export default function RootLayout({
     { name: 'Factures', href: '/receivables', icon: FileText },
     { name: 'Clients', href: '/clients', icon: Users },
     { name: 'Projets', href: '/projects', icon: Briefcase },
+    { name: 'Statistiques', href: '/statistics', icon: BarChart3 },
   ];
 
   useEffect(() => {

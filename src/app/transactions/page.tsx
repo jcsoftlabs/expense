@@ -28,6 +28,7 @@ interface Transaction {
   client_id?: string;
   projectName?: string;
   clientName?: string;
+  payment_method?: string;
 }
 
 interface Client {
@@ -57,6 +58,8 @@ export default function Transactions() {
   // Filters
   const [filterType, setFilterType] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
 
   // Modal form states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -68,7 +71,8 @@ export default function Transactions() {
     description: '',
     currency: 'USD' as 'USD' | 'HTG',
     client_id: '',
-    project_id: ''
+    project_id: '',
+    payment_method: ''
   });
 
   useEffect(() => {
@@ -78,8 +82,16 @@ export default function Transactions() {
   async function fetchData() {
     try {
       setLoading(true);
+      let txnsUrl = '/api/transactions';
+      const params = new URLSearchParams();
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      if (params.toString()) {
+        txnsUrl += `?${params.toString()}`;
+      }
+
       const [txnsRes, clientsRes, projectsRes] = await Promise.all([
-        fetch('/api/transactions'),
+        fetch(txnsUrl),
         fetch('/api/clients'),
         fetch('/api/projects')
       ]);
@@ -102,6 +114,10 @@ export default function Transactions() {
     }
   }
 
+  useEffect(() => {
+    fetchData();
+  }, [startDate, endDate]);
+
   // Handle transaction creation
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -119,7 +135,8 @@ export default function Transactions() {
           ...formData,
           amount: parseFloat(formData.amount),
           client_id: formData.client_id || null,
-          project_id: formData.project_id || null
+          project_id: formData.project_id || null,
+          payment_method: formData.payment_method || null
         })
       });
 
@@ -135,7 +152,8 @@ export default function Transactions() {
         description: '',
         currency: 'USD',
         client_id: '',
-        project_id: ''
+        project_id: '',
+        payment_method: ''
       });
       
       // Reload list
@@ -208,43 +226,79 @@ export default function Transactions() {
       </header>
 
       {/* Filter and search control bar */}
-      <section className="glass-panel" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '30px' }}>
-        {/* Toggle type filters */}
-        <div style={{ display: 'flex', gap: '8px', background: 'rgba(0, 0, 0, 0.2)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
-          <button 
-            className={`btn`} 
-            style={{ padding: '8px 16px', fontSize: '0.85rem', borderRadius: '6px', background: filterType === 'ALL' ? 'var(--primary)' : 'transparent', color: '#ffffff' }}
-            onClick={() => setFilterType('ALL')}
-          >
-            Tous
-          </button>
-          <button 
-            className={`btn`} 
-            style={{ padding: '8px 16px', fontSize: '0.85rem', borderRadius: '6px', background: filterType === 'INCOME' ? 'var(--success)' : 'transparent', color: '#ffffff' }}
-            onClick={() => setFilterType('INCOME')}
-          >
-            Revenus
-          </button>
-          <button 
-            className={`btn`} 
-            style={{ padding: '8px 16px', fontSize: '0.85rem', borderRadius: '6px', background: filterType === 'EXPENSE' ? 'var(--danger)' : 'transparent', color: '#ffffff' }}
-            onClick={() => setFilterType('EXPENSE')}
-          >
-            Dépenses
-          </button>
+      <section className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '30px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', alignItems: 'center', width: '100%' }}>
+          {/* Toggle type filters */}
+          <div style={{ display: 'flex', gap: '8px', background: 'rgba(0, 0, 0, 0.2)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
+            <button 
+              className={`btn`} 
+              style={{ padding: '8px 16px', fontSize: '0.85rem', borderRadius: '6px', background: filterType === 'ALL' ? 'var(--primary)' : 'transparent', color: '#ffffff' }}
+              onClick={() => setFilterType('ALL')}
+            >
+              Tous
+            </button>
+            <button 
+              className={`btn`} 
+              style={{ padding: '8px 16px', fontSize: '0.85rem', borderRadius: '6px', background: filterType === 'INCOME' ? 'var(--success)' : 'transparent', color: '#ffffff' }}
+              onClick={() => setFilterType('INCOME')}
+            >
+              Revenus
+            </button>
+            <button 
+              className={`btn`} 
+              style={{ padding: '8px 16px', fontSize: '0.85rem', borderRadius: '6px', background: filterType === 'EXPENSE' ? 'var(--danger)' : 'transparent', color: '#ffffff' }}
+              onClick={() => setFilterType('EXPENSE')}
+            >
+              Dépenses
+            </button>
+          </div>
+
+          {/* Text search */}
+          <div style={{ position: 'relative', minWidth: '280px', flexGrow: 1, maxWidth: '400px' }}>
+            <Search size={18} color="var(--text-dark)" style={{ position: 'absolute', left: '14px', top: '14px' }} />
+            <input 
+              type="text" 
+              placeholder="Rechercher description, projet, client..." 
+              className="form-input" 
+              style={{ paddingLeft: '45px' }}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </div>
 
-        {/* Text search */}
-        <div style={{ position: 'relative', minWidth: '280px', flexGrow: 1, maxWidth: '400px' }}>
-          <Search size={18} color="var(--text-dark)" style={{ position: 'absolute', left: '14px', top: '14px' }} />
-          <input 
-            type="text" 
-            placeholder="Rechercher description, projet, client..." 
-            className="form-input" 
-            style={{ paddingLeft: '45px' }}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        {/* Date range filters */}
+        <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: '15px', flexWrap: 'wrap', borderTop: '1px solid var(--border-glass)', paddingTop: '15px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Date début :</span>
+            <input 
+              type="date" 
+              className="form-input" 
+              style={{ padding: '6px 10px', fontSize: '0.8rem', width: '140px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-glass)' }}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Date fin :</span>
+            <input 
+              type="date" 
+              className="form-input" 
+              style={{ padding: '6px 10px', fontSize: '0.8rem', width: '140px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-glass)' }}
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+          {(startDate || endDate) && (
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+              onClick={() => { setStartDate(''); setEndDate(''); }}
+            >
+              Réinitialiser les dates
+            </button>
+          )}
         </div>
       </section>
 
@@ -280,9 +334,28 @@ export default function Transactions() {
                       </div>
                     </td>
 
-                    {/* Description */}
+                     {/* Description */}
                     <td style={{ padding: '16px 24px' }}>
-                      <span style={{ fontSize: '0.92rem', fontWeight: '600', color: '#ffffff' }}>{t.description}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <span style={{ fontSize: '0.92rem', fontWeight: '600', color: '#ffffff' }}>{t.description}</span>
+                        {t.payment_method && (
+                          <span style={{ 
+                            fontSize: '0.74rem', 
+                            padding: '2px 8px', 
+                            borderRadius: '4px', 
+                            background: 'rgba(255,255,255,0.03)', 
+                            border: '1px solid rgba(255,255,255,0.06)',
+                            color: 'var(--text-muted)',
+                            display: 'inline-block',
+                            width: 'fit-content'
+                          }}>
+                            {t.payment_method === 'CASH' && '💵 Espèces'}
+                            {t.payment_method === 'VIREMENT' && '🏦 Virement'}
+                            {t.payment_method === 'CHEQUE' && '✍️ Chèque'}
+                            {t.payment_method === 'MOBILE_MONEY' && '📱 Mobile Money'}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Category */}
@@ -495,6 +568,22 @@ export default function Transactions() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
+              </div>
+
+              {/* Payment Method Input */}
+              <div className="input-group">
+                <label className="input-label">Mode de paiement</label>
+                <select 
+                  className="form-select"
+                  value={formData.payment_method}
+                  onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
+                >
+                  <option value="">Non spécifié / Autre</option>
+                  <option value="CASH">💵 Espèces (Cash)</option>
+                  <option value="VIREMENT">🏦 Virement Bancaire</option>
+                  <option value="CHEQUE">✍️ Chèque</option>
+                  <option value="MOBILE_MONEY">📱 Mobile Money (MonCash/Natcash)</option>
+                </select>
               </div>
 
               <div className="modal-actions">

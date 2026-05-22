@@ -73,6 +73,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Date Range Filtering States
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+
   // Switch between USD and HTG for the Chart
   const [activeCurrency, setActiveCurrency] = useState<'USD' | 'HTG'>('USD');
 
@@ -83,7 +87,17 @@ export default function Dashboard() {
 
   async function fetchDashboard() {
     try {
-      const res = await fetch('/api/dashboard');
+      setLoading(true);
+      let url = '/api/dashboard';
+      const params = new URLSearchParams();
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+
+      const res = await fetch(url);
       if (!res.ok) throw new Error('Erreur lors du chargement des données');
       const json = await res.json();
       setData(json);
@@ -94,9 +108,27 @@ export default function Dashboard() {
     }
   }
 
+  const applyPreset = (preset: 'all' | 'month' | '3months') => {
+    const today = new Date();
+    if (preset === 'all') {
+      setStartDate('');
+      setEndDate('');
+    } else if (preset === 'month') {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      setStartDate(start.toISOString().split('T')[0]);
+      setEndDate(end.toISOString().split('T')[0]);
+    } else if (preset === '3months') {
+      const start = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      setStartDate(start.toISOString().split('T')[0]);
+      setEndDate(end.toISOString().split('T')[0]);
+    }
+  };
+
   useEffect(() => {
     fetchDashboard();
-  }, []);
+  }, [startDate, endDate]);
 
   async function handleAISubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -207,6 +239,102 @@ export default function Dashboard() {
           </Link>
         </div>
       </header>
+
+      {/* Date Filter Panel */}
+      <div className="glass-panel" style={{ 
+        padding: '16px 20px', 
+        marginBottom: '35px', 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        flexWrap: 'wrap', 
+        gap: '15px',
+        background: 'rgba(255, 255, 255, 0.02)',
+        borderColor: 'var(--border-glass)'
+      }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)', fontWeight: '600' }}>Période :</span>
+          <div style={{ display: 'flex', gap: '6px', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
+            <button 
+              type="button" 
+              className="btn" 
+              style={{
+                padding: '4px 12px',
+                fontSize: '0.78rem',
+                borderRadius: '6px',
+                background: (!startDate && !endDate) ? 'var(--primary-glow)' : 'transparent',
+                borderColor: (!startDate && !endDate) ? 'var(--primary)' : 'transparent',
+                color: '#ffffff',
+                borderWidth: '1px',
+                borderStyle: 'solid',
+                cursor: 'pointer'
+              }}
+              onClick={() => applyPreset('all')}
+            >
+              Tout
+            </button>
+            <button 
+              type="button" 
+              className="btn" 
+              style={{
+                padding: '4px 12px',
+                fontSize: '0.78rem',
+                borderRadius: '6px',
+                background: (startDate && endDate && new Date(startDate).getDate() === 1) ? 'var(--primary-glow)' : 'transparent',
+                borderColor: (startDate && endDate && new Date(startDate).getDate() === 1) ? 'var(--primary)' : 'transparent',
+                color: '#ffffff',
+                borderWidth: '1px',
+                borderStyle: 'solid',
+                cursor: 'pointer'
+              }}
+              onClick={() => applyPreset('month')}
+            >
+              Ce mois-ci
+            </button>
+            <button 
+              type="button" 
+              className="btn" 
+              style={{
+                padding: '4px 12px',
+                fontSize: '0.78rem',
+                borderRadius: '6px',
+                background: (startDate && new Date(startDate).getMonth() === ((new Date().getMonth() - 2 + 12) % 12)) ? 'var(--primary-glow)' : 'transparent',
+                borderColor: (startDate && new Date(startDate).getMonth() === ((new Date().getMonth() - 2 + 12) % 12)) ? 'var(--primary)' : 'transparent',
+                color: '#ffffff',
+                borderWidth: '1px',
+                borderStyle: 'solid',
+                cursor: 'pointer'
+              }}
+              onClick={() => applyPreset('3months')}
+            >
+              3 derniers mois
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Du</span>
+            <input 
+              type="date" 
+              className="form-input" 
+              style={{ padding: '6px 10px', fontSize: '0.8rem', width: '135px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-glass)' }}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Au</span>
+            <input 
+              type="date" 
+              className="form-input" 
+              style={{ padding: '6px 10px', fontSize: '0.8rem', width: '135px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-glass)' }}
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
 
       {/* AI Command Center Canvas */}
       <section className="glass-panel" style={{ 

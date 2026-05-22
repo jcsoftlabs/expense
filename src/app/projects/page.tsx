@@ -56,7 +56,8 @@ export default function Projects() {
     client_id: '',
     budget: '',
     status: 'ACTIVE' as 'ACTIVE' | 'COMPLETED' | 'ON_HOLD' | 'PIPELINE',
-    currency: 'USD' as 'USD' | 'HTG'
+    currency: 'USD' as 'USD' | 'HTG',
+    created_at: new Date().toISOString().split('T')[0]
   });
 
   useEffect(() => {
@@ -103,7 +104,8 @@ export default function Projects() {
         body: JSON.stringify({
           ...formData,
           budget: formData.budget ? parseFloat(formData.budget) : 0,
-          client_id: formData.client_id || null
+          client_id: formData.client_id || null,
+          created_at: formData.created_at || null
         })
       });
 
@@ -117,7 +119,8 @@ export default function Projects() {
         client_id: '',
         budget: '',
         status: 'ACTIVE',
-        currency: 'USD'
+        currency: 'USD',
+        created_at: new Date().toISOString().split('T')[0]
       });
       fetchData(); // reload
     } catch (err: any) {
@@ -224,11 +227,16 @@ export default function Projects() {
                       </div>
                       <div>
                         <h4 style={{ fontSize: '1.05rem', color: '#ffffff' }}>{p.name}</h4>
-                        {p.clientName && (
-                          <span style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                            <User size={12} /> {p.clientName}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '3px' }}>
+                          {p.clientName && (
+                            <span style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}>
+                              <User size={12} /> {p.clientName}
+                            </span>
+                          )}
+                          <span style={{ fontSize: '0.76rem', color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            📅 Début : {new Date(p.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
                           </span>
-                        )}
+                        </div>
                       </div>
                     </div>
 
@@ -393,19 +401,31 @@ export default function Projects() {
                 </div>
               </div>
 
-              {/* Status Selector */}
-              <div className="input-group">
-                <label className="input-label">Statut initial *</label>
-                <select 
-                  className="form-select"
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                >
-                  <option value="ACTIVE">Actif (En cours)</option>
-                  <option value="COMPLETED">Terminé</option>
-                  <option value="ON_HOLD">En Pause</option>
-                  <option value="PIPELINE">Opportunité (En discussion)</option>
-                </select>
+              {/* Date de Début / Création & Status Selector */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="input-group">
+                  <label className="input-label">Date de début / Création *</label>
+                  <input 
+                    type="date" 
+                    className="form-input" 
+                    required 
+                    value={formData.created_at}
+                    onChange={(e) => setFormData({ ...formData, created_at: e.target.value })}
+                  />
+                </div>
+                <div className="input-group">
+                  <label className="input-label">Statut initial *</label>
+                  <select 
+                    className="form-select"
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                  >
+                    <option value="ACTIVE">Actif (En cours)</option>
+                    <option value="COMPLETED">Terminé</option>
+                    <option value="ON_HOLD">En Pause</option>
+                    <option value="PIPELINE">Opportunité (En discussion)</option>
+                  </select>
+                </div>
               </div>
 
               {/* Description Input */}

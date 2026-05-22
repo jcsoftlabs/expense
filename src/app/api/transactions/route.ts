@@ -9,6 +9,8 @@ export async function GET(request: Request) {
     const projectId = searchParams.get('project_id');
     const clientId = searchParams.get('client_id');
     const category = searchParams.get('category');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
     let sql = `
       SELECT t.*, p.name as projectName, c.name as clientName
@@ -35,6 +37,14 @@ export async function GET(request: Request) {
       sql += ` AND t.category = ?`;
       params.push(category);
     }
+    if (startDate) {
+      sql += ` AND t.date >= ?`;
+      params.push(startDate);
+    }
+    if (endDate) {
+      sql += ` AND t.date <= ?`;
+      params.push(endDate);
+    }
 
     sql += ` ORDER BY t.date DESC, t.created_at DESC`;
 
@@ -54,7 +64,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { type, amount, date, category, description, project_id, client_id, currency } = body;
+    const { type, amount, date, category, description, project_id, client_id, currency, payment_method } = body;
 
     if (!type || !amount || !date || !category) {
       return NextResponse.json({ error: 'Missing required transaction fields' }, { status: 400 });
@@ -70,8 +80,8 @@ export async function POST(request: Request) {
     const txnCurrency = currency || 'USD';
 
     await query(
-      `INSERT INTO transactions (id, type, amount, date, category, description, project_id, client_id, currency) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, type, txnAmount, txnDate, category, description || null, project_id || null, client_id || null, txnCurrency]
+      `INSERT INTO transactions (id, type, amount, date, category, description, project_id, client_id, currency, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, type, txnAmount, txnDate, category, description || null, project_id || null, client_id || null, txnCurrency, payment_method || null]
     );
 
     const [newTxn] = await query(`SELECT * FROM transactions WHERE id = ?`, [id]);

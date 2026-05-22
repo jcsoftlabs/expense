@@ -23,33 +23,46 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ message: 'Invoice is already marked as Paid', invoice });
     }
 
+    let paymentMethod = null;
+    let paymentDate = null;
+
+    try {
+      const body = await request.json();
+      paymentMethod = body.paymentMethod || null;
+      paymentDate = body.paymentDate || null;
+    } catch (e) {
+      // Body may be empty
+    }
+
     const todayStr = new Date().toISOString().split('T')[0];
+    const actualPaymentDate = paymentDate || todayStr;
 
     // 2. Perform updates
-    // Update invoice status to PAID
+    // Update invoice status to PAID and set payment method
     await query(
-      `UPDATE receivables SET status = 'PAID' WHERE id = ?`,
-      [id]
+      `UPDATE receivables SET status = 'PAID', payment_method = ? WHERE id = ?`,
+      [paymentMethod, id]
     );
 
     // 3. Inject corresponding INCOME transaction
     const txnId = crypto.randomUUID();
-    const txnDescription = `Payment for Invoice #${invoice.invoice_number}${invoice.notes ? ` - ${invoice.notes}` : ''}`;
+    const txnDescription = `Paiement Facture #${invoice.invoice_number}${invoice.notes ? ` - ${invoice.notes}` : ''}`;
     
-    // Choose appropriate category: e.g. "Freelance Dev" or "Consulting"
+    // Choose appropriate category
     const txnCategory = 'Freelance Dev';
 
     await query(
-      `INSERT INTO transactions (id, type, amount, date, category, description, project_id, client_id, currency) VALUES (?, 'INCOME', ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO transactions (id, type, amount, date, category, description, project_id, client_id, currency, payment_method) VALUES (?, 'INCOME', ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         txnId, 
         parseFloat(invoice.amount), 
-        todayStr, 
+        actualPaymentDate, 
         txnCategory, 
         txnDescription, 
         invoice.project_id || null, 
         invoice.client_id || null,
-        invoice.currency || 'USD'
+        invoice.currency || 'USD',
+        paymentMethod
       ]
     );
 

@@ -1,8 +1,34 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
+    let txWhere = '';
+    const txParams: any[] = [];
+    if (startDate) {
+      txWhere += ' AND date >= ?';
+      txParams.push(startDate);
+    }
+    if (endDate) {
+      txWhere += ' AND date <= ?';
+      txParams.push(endDate);
+    }
+
+    let recWhere = '';
+    const recParams: any[] = [];
+    if (startDate) {
+      recWhere += ' AND issue_date >= ?';
+      recParams.push(startDate);
+    }
+    if (endDate) {
+      recWhere += ' AND issue_date <= ?';
+      recParams.push(endDate);
+    }
+
     // 1. Net Balance (Income vs Expenses) by Currency
     const transactions = await query(`
       SELECT 
@@ -10,8 +36,9 @@ export async function GET() {
         SUM(CASE WHEN type = 'INCOME' THEN amount ELSE 0 END) as totalIncome,
         SUM(CASE WHEN type = 'EXPENSE' THEN amount ELSE 0 END) as totalExpenses
       FROM transactions
+      WHERE 1=1 ${txWhere}
       GROUP BY currency
-    `);
+    `, txParams);
     
     let totalIncomeUSD = 0, totalExpensesUSD = 0;
     let totalIncomeHTG = 0, totalExpensesHTG = 0;
@@ -37,8 +64,9 @@ export async function GET() {
         SUM(CASE WHEN status = 'OVERDUE' THEN amount ELSE 0 END) as totalOverdue,
         SUM(CASE WHEN status = 'PAID' THEN amount ELSE 0 END) as totalPaid
       FROM receivables
+      WHERE 1=1 ${recWhere}
       GROUP BY currency
-    `);
+    `, recParams);
     
     let outstandingPendingUSD = 0, outstandingOverdueUSD = 0, outstandingPaidUSD = 0;
     let outstandingPendingHTG = 0, outstandingOverdueHTG = 0, outstandingPaidHTG = 0;
@@ -78,9 +106,10 @@ export async function GET() {
       FROM transactions t
       LEFT JOIN projects p ON t.project_id = p.id
       LEFT JOIN clients c ON t.client_id = c.id
+      WHERE 1=1 ${txWhere}
       ORDER BY t.date DESC, t.created_at DESC
       LIMIT 6
-    `);
+    `, txParams);
 
     // 6. Monthly Cash Flow (income vs expenses per month per currency)
     const cashFlowRaw = await query(`
@@ -90,10 +119,11 @@ export async function GET() {
         SUM(CASE WHEN type = 'INCOME' THEN amount ELSE 0 END) as income,
         SUM(CASE WHEN type = 'EXPENSE' THEN amount ELSE 0 END) as expenses
       FROM transactions
+      WHERE 1=1 ${txWhere}
       GROUP BY DATE_FORMAT(date, '%Y-%m'), currency
       ORDER BY month ASC
       LIMIT 24
-    `);
+    `, txParams);
 
     const usdFlowMap = new Map();
     const htgFlowMap = new Map();
@@ -120,15 +150,26 @@ export async function GET() {
     const categoryRaw = await query(`
       SELECT category, currency, SUM(amount) as value
       FROM transactions
-      WHERE type = 'EXPENSE'
+      WHERE type = 'EXPENSE' ${txWhere}
       GROUP BY category, currency
       ORDER BY value DESC
-    `);
+    `, txParams);
     
     const categoryDataUSD = categoryRaw.filter((r: any) => r.currency !== 'HTG').map((r: any) => ({ category: r.category, value: parseFloat(r.value || 0) }));
     const categoryDataHTG = categoryRaw.filter((r: any) => r.currency === 'HTG').map((r: any) => ({ category: r.category, value: parseFloat(r.value || 0) }));
 
-    // 8. Upcoming Receivables (Unpaid & sorting by due date)
+    // 8. Volume by Payment Method per Currency (Incomes)
+    const paymentMethodsRaw = await query(`
+      SELECT payment_method, currency, SUM(amount) as value
+      FROM transactions
+      WHERE type = 'INCOME' AND payment_method IS NOT NULL ${txWhere}
+      GROUP BY payment_method, currency
+    `, txParams);
+    
+    const paymentMethodsUSD = paymentMethodsRaw.filter((r: any) => r.currency !== 'HTG').map((r: any) => ({ method: r.payment_method, value: parseFloat(r.value || 0) }));
+    const paymentMethodsHTG = paymentMethodsRaw.filter((r: any) => r.currency === 'HTG').map((r: any) => ({ method: r.payment_method, value: parseFloat(r.value || 0) }));
+
+    // 9. Upcoming Receivables (Unpaid & sorting by due date)
     const upcomingReceivables = await query(`
       SELECT r.*, c.name as clientName, p.name as projectName
       FROM receivables r
@@ -173,6 +214,8 @@ export async function GET() {
       cashFlowDataHTG,
       categoryDataUSD,
       categoryDataHTG,
+      paymentMethodsUSD,
+      paymentMethodsHTG,
       upcomingReceivables: upcomingFormatted,
     });
   } catch (error: any) {

@@ -49,7 +49,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, description, status, client_id, budget, currency } = body;
+    const { name, description, status, client_id, budget, currency, created_at } = body;
 
     if (!name) {
       return NextResponse.json({ error: 'Project name is required' }, { status: 400 });
@@ -60,10 +60,17 @@ export async function POST(request: Request) {
     const projectBudget = budget ? parseFloat(budget) : 0.00;
     const projectCurrency = currency || 'USD';
 
-    await query(
-      `INSERT INTO projects (id, name, description, status, client_id, budget, currency) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id, name, description || null, projectStatus, client_id || null, projectBudget, projectCurrency]
-    );
+    if (created_at) {
+      await query(
+        `INSERT INTO projects (id, name, description, status, client_id, budget, currency, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [id, name, description || null, projectStatus, client_id || null, projectBudget, projectCurrency, created_at]
+      );
+    } else {
+      await query(
+        `INSERT INTO projects (id, name, description, status, client_id, budget, currency) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [id, name, description || null, projectStatus, client_id || null, projectBudget, projectCurrency]
+      );
+    }
 
     const [newProject] = await query(`SELECT * FROM projects WHERE id = ?`, [id]);
     return NextResponse.json(newProject, { status: 201 });
