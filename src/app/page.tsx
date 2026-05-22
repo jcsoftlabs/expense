@@ -18,6 +18,8 @@ import {
   Zap
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
+import SecuritySettings from '@/app/components/SecuritySettings';
+
 
 
 interface CurrencySummary {
@@ -653,6 +655,9 @@ export default function Dashboard() {
               </Link>
             </div>
           </div>
+
+          {/* Paramètres de sécurité */}
+          <SecuritySettings />
         </div>
       </section>
 

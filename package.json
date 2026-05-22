@@ -11,6 +11,8 @@
     "db:clean": "node scripts/db-clean.js"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/server": "^13.3.0",
     "lucide-react": "^1.16.0",
     "mysql2": "^3.22.3",
     "next": "16.2.6",
