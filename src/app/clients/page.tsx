@@ -12,7 +12,8 @@ import {
   User,
   Briefcase,
   TrendingUp,
-  FileText
+  FileText,
+  Edit
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
 import { useToast } from '@/app/components/Toast';
@@ -46,6 +47,16 @@ export default function Clients() {
   // Modal form states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    company: ''
+  });
+
+  // Edit Modal States
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingClientId, setEditingClientId] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState({
     name: '',
     email: '',
     phone: '',
@@ -104,6 +115,48 @@ export default function Clients() {
       fetchClients(); // reload
     } catch (err: any) {
       showToast(err.message || 'Erreur lors de la création du client.', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Trigger editing a client
+  function handleEditClick(client: Client) {
+    setEditingClientId(client.id);
+    setEditFormData({
+      name: client.name,
+      email: client.email || '',
+      phone: client.phone || '',
+      company: client.company || ''
+    });
+    setIsEditModalOpen(true);
+  }
+
+  // Handle client modification
+  async function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editFormData.name) {
+      showToast('Le nom du client est requis', 'warning');
+      return;
+    }
+    if (!editingClientId) return;
+
+    try {
+      setSubmitting(true);
+      const res = await fetch(`/api/clients/${editingClientId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editFormData)
+      });
+
+      if (!res.ok) throw new Error("Erreur lors de la modification du client");
+
+      showToast('Client mis à jour avec succès !', 'success');
+      setIsEditModalOpen(false);
+      setEditingClientId(null);
+      fetchClients(); // reload
+    } catch (err: any) {
+      showToast(err.message || 'Erreur lors de la modification.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -268,13 +321,22 @@ export default function Clients() {
                       </div>
                     </div>
 
-                    <button 
-                      style={{ background: 'none', border: 'none', color: 'var(--text-dark)', cursor: 'pointer', padding: '6px' }}
-                      className="delete-icon-btn"
-                      onClick={() => confirmDelete(c.id)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button 
+                        style={{ background: 'none', border: 'none', color: 'var(--text-dark)', cursor: 'pointer', padding: '6px' }}
+                        className="edit-icon-btn"
+                        onClick={() => handleEditClick(c)}
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button 
+                        style={{ background: 'none', border: 'none', color: 'var(--text-dark)', cursor: 'pointer', padding: '6px' }}
+                        className="delete-icon-btn"
+                        onClick={() => confirmDelete(c.id)}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Contact Methods */}
@@ -411,6 +473,78 @@ export default function Clients() {
         </div>
       )}
 
+      {/* Edit Client Modal */}
+      {isEditModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <div className="modal-header">
+              <h3 className="modal-title">Modifier le Client</h3>
+              <button className="modal-close" onClick={() => setIsEditModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit}>
+              {/* Name */}
+              <div className="input-group">
+                <label className="input-label">Nom complet du client *</label>
+                <input 
+                  type="text" 
+                  placeholder="Ex: Jean Dupont" 
+                  className="form-input" 
+                  required 
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                />
+              </div>
+
+              {/* Company */}
+              <div className="input-group">
+                <label className="input-label">Entreprise / Société</label>
+                <input 
+                  type="text" 
+                  placeholder="Ex: Acme Systems SAS" 
+                  className="form-input" 
+                  value={editFormData.company}
+                  onChange={(e) => setEditFormData({ ...editFormData, company: e.target.value })}
+                />
+              </div>
+
+              {/* Email */}
+              <div className="input-group">
+                <label className="input-label">Adresse e-mail</label>
+                <input 
+                  type="email" 
+                  placeholder="jean.dupont@company.com" 
+                  className="form-input" 
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                />
+              </div>
+
+              {/* Phone */}
+              <div className="input-group">
+                <label className="input-label">Numéro de téléphone</label>
+                <input 
+                  type="tel" 
+                  placeholder="+33 6 12 34 56 78" 
+                  className="form-input" 
+                  value={editFormData.phone}
+                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                />
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" className="btn btn-secondary" onClick={() => setIsEditModalOpen(false)}>Annuler</button>
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                  {submitting ? 'Modification...' : 'Enregistrer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Confirmation Modal */}
       <ConfirmModal
         isOpen={isDeleteModalOpen}
@@ -430,6 +564,10 @@ export default function Clients() {
         .delete-icon-btn:hover {
           color: var(--danger) !important;
           filter: drop-shadow(0 0 5px rgba(244,63,94,0.3));
+        }
+        .edit-icon-btn:hover {
+          color: var(--primary) !important;
+          filter: drop-shadow(0 0 5px rgba(59,130,246,0.3));
         }
         .contact-link:hover {
           color: #ffffff !important;
