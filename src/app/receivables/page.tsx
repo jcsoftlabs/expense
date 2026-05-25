@@ -53,7 +53,7 @@ export default function Receivables() {
   const { showToast } = useToast();
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectOptions, setProjectOptions] = useState<Project[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -91,26 +91,47 @@ export default function Receivables() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    async function fetchClientProjects() {
+      if (!formData.client_id) {
+        setProjectOptions([]);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/projects?client_id=${encodeURIComponent(formData.client_id)}`);
+        if (!res.ok) {
+          throw new Error('Erreur lors du chargement des projets du client');
+        }
+
+        const projectsJson = await res.json();
+        setProjectOptions(projectsJson);
+      } catch (err) {
+        console.error('Erreur chargement projets client:', err);
+        setProjectOptions([]);
+      }
+    }
+
+    fetchClientProjects();
+  }, [formData.client_id]);
+
   async function fetchData(silent = false) {
     try {
       if (!silent) setLoading(true);
-      const [recRes, clientsRes, projectsRes] = await Promise.all([
+      const [recRes, clientsRes] = await Promise.all([
         fetch('/api/receivables'),
-        fetch('/api/clients'),
-        fetch('/api/projects')
+        fetch('/api/clients')
       ]);
 
-      if (!recRes.ok || !clientsRes.ok || !projectsRes.ok) {
+      if (!recRes.ok || !clientsRes.ok) {
         throw new Error('Erreur lors du chargement des factures');
       }
 
       const recJson = await recRes.json();
       const clientsJson = await clientsRes.json();
-      const projectsJson = await projectsRes.json();
 
       setReceivables(recJson);
       setClients(clientsJson);
-      setProjects(projectsJson);
 
       // Auto-suggest next invoice number based on size
       const count = recJson.length + 1;
@@ -207,6 +228,7 @@ export default function Receivables() {
         currency: 'USD',
         notes: ''
       });
+      setProjectOptions([]);
       fetchData(); // reload
     } catch (err: any) {
       showToast(err.message || 'Erreur lors de la création.', 'error');
@@ -251,10 +273,6 @@ export default function Receivables() {
       (r.notes && r.notes.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesTab && matchesSearch;
   });
-
-  const clientProjects = formData.client_id
-    ? projects.filter((project) => project.client_id === formData.client_id)
-    : [];
 
   if (loading && receivables.length === 0) {
     return (
@@ -687,11 +705,11 @@ export default function Receivables() {
                   <option value="">
                     {!formData.client_id
                       ? 'Choisir d’abord un client'
-                      : clientProjects.length === 0
+                      : projectOptions.length === 0
                         ? 'Aucun projet lié'
                         : 'Aucun projet lié'}
                   </option>
-                  {clientProjects.map((p) => (
+                  {projectOptions.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>

@@ -2,8 +2,18 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import crypto from 'crypto';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const clientId = searchParams.get('client_id');
+
+    const params: string[] = [];
+    let whereClause = '';
+    if (clientId) {
+      whereClause = 'WHERE p.client_id = ?';
+      params.push(clientId);
+    }
+
     // Returns projects with client details and financial performance metrics filtered by project currency
     const projects = await query(`
       SELECT 
@@ -22,8 +32,9 @@ export async function GET() {
         ), 0.00) as totalExpenses
       FROM projects p
       LEFT JOIN clients c ON p.client_id = c.id
+      ${whereClause}
       ORDER BY p.name ASC
-    `);
+    `, params);
 
     // Cast properties
     const formattedProjects = projects.map((proj: any) => {
