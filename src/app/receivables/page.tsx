@@ -46,6 +46,7 @@ interface Client {
 interface Project {
   id: string;
   name: string;
+  client_id?: string;
 }
 
 export default function Receivables() {
@@ -250,6 +251,10 @@ export default function Receivables() {
       (r.notes && r.notes.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesTab && matchesSearch;
   });
+
+  const clientProjects = formData.client_id
+    ? projects.filter((project) => project.client_id === formData.client_id)
+    : [];
 
   if (loading && receivables.length === 0) {
     return (
@@ -655,7 +660,13 @@ export default function Receivables() {
                   className="form-select"
                   required
                   value={formData.client_id}
-                  onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      client_id: e.target.value,
+                      project_id: '',
+                    })
+                  }
                 >
                   <option value="">Sélectionner un client...</option>
                   {clients.map((c) => (
@@ -669,11 +680,18 @@ export default function Receivables() {
                 <label className="input-label">Associer à un projet</label>
                 <select 
                   className="form-select"
+                  disabled={!formData.client_id}
                   value={formData.project_id}
                   onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
                 >
-                  <option value="">Aucun projet lié</option>
-                  {projects.map((p) => (
+                  <option value="">
+                    {!formData.client_id
+                      ? 'Choisir d’abord un client'
+                      : clientProjects.length === 0
+                        ? 'Aucun projet lié'
+                        : 'Aucun projet lié'}
+                  </option>
+                  {clientProjects.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
