@@ -6,6 +6,7 @@ import {
   Clock, 
   CheckCircle2, 
   Trash2, 
+  Edit,
   Loader2,
   X,
   FileText,
@@ -62,6 +63,7 @@ export default function Receivables() {
   // Deletion Modal States
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
 
   // Filter tabs and search query
   const [activeTab, setActiveTab] = useState<string>('ALL');
@@ -144,6 +146,46 @@ export default function Receivables() {
     }
   }
 
+  function resetForm() {
+    setFormData({
+      invoice_number: '',
+      amount: '',
+      issue_date: new Date().toISOString().split('T')[0],
+      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      client_id: '',
+      project_id: '',
+      currency: 'USD',
+      notes: ''
+    });
+    setProjectOptions([]);
+    setEditingInvoiceId(null);
+  }
+
+  function closeModal() {
+    setIsModalOpen(false);
+    resetForm();
+  }
+
+  function openNewInvoiceModal() {
+    resetForm();
+    setIsModalOpen(true);
+  }
+
+  function startEditInvoice(invoice: Receivable) {
+    setEditingInvoiceId(invoice.id);
+    setFormData({
+      invoice_number: invoice.invoice_number,
+      amount: invoice.amount.toFixed(2),
+      issue_date: invoice.issue_date.split('T')[0],
+      due_date: invoice.due_date.split('T')[0],
+      client_id: invoice.client_id || '',
+      project_id: invoice.project_id || '',
+      currency: invoice.currency === 'HTG' ? 'HTG' : 'USD',
+      notes: invoice.notes || ''
+    });
+    setIsModalOpen(true);
+  }
+
   const { pullDistance, isRefreshing, isPulling } = usePullToRefresh({
     onRefresh: async () => {
       await fetchData(true);
@@ -193,7 +235,7 @@ export default function Receivables() {
     }
   }
 
-  // Handle invoice creation
+  // Handle invoice creation / update
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!formData.invoice_number || !formData.amount || !formData.issue_date || !formData.due_date || !formData.client_id) {
@@ -203,8 +245,9 @@ export default function Receivables() {
 
     try {
       setSubmitting(true);
-      const res = await fetch('/api/receivables', {
-        method: 'POST',
+      const isEditing = !!editingInvoiceId;
+      const res = await fetch(isEditing ? `/api/receivables/${editingInvoiceId}` : '/api/receivables', {
+        method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
@@ -213,25 +256,14 @@ export default function Receivables() {
         })
       });
 
-      if (!res.ok) throw new Error("Erreur lors de la création de la facture");
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || (isEditing ? "Erreur lors de la modification de la facture" : "Erreur lors de la création de la facture"));
 
-      showToast('Facture créée avec succès !', 'success');
-      setIsModalOpen(false);
-      // Reset form (retaining next invoice calculation and dates)
-      setFormData({
-        invoice_number: '',
-        amount: '',
-        issue_date: new Date().toISOString().split('T')[0],
-        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        client_id: '',
-        project_id: '',
-        currency: 'USD',
-        notes: ''
-      });
-      setProjectOptions([]);
+      showToast(isEditing ? 'Facture modifiée avec succès !' : 'Facture créée avec succès !', 'success');
+      closeModal();
       fetchData(); // reload
     } catch (err: any) {
-      showToast(err.message || 'Erreur lors de la création.', 'error');
+      showToast(err.message || 'Erreur lors de la soumission.', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -356,7 +388,7 @@ export default function Receivables() {
           <h1 style={{ fontSize: '2.1rem', marginBottom: '6px' }}>Comptes à Recevoir & Factures</h1>
           <p>Suivez vos prestations facturées, gérez les relances en USD/HTG et encaissez vos paiements.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+        <button className="btn btn-primary" onClick={openNewInvoiceModal}>
           <Plus size={18} /> Émettre une facture
         </button>
       </header>
@@ -423,7 +455,7 @@ export default function Receivables() {
               }
             </p>
             {receivables.length === 0 && (
-              <button className="btn btn-primary" style={{ marginTop: '8px' }} onClick={() => setIsModalOpen(true)}>
+              <button className="btn btn-primary" style={{ marginTop: '8px' }} onClick={openNewInvoiceModal}>
                 Émettre une facture
               </button>
             )}
@@ -540,6 +572,13 @@ export default function Receivables() {
                   </div>
 
                   <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      style={{ background: 'none', border: 'none', color: 'var(--text-dark)', cursor: 'pointer', padding: '6px' }}
+                      onClick={() => startEditInvoice(inv)}
+                      title="Modifier la facture"
+                    >
+                      <Edit size={15} />
+                    </button>
                     {inv.status !== 'PAID' ? (
                       <button 
                         className="btn btn-success" 
@@ -584,8 +623,8 @@ export default function Receivables() {
         <div className="modal-overlay">
           <div className="modal-container">
             <div className="modal-header">
-              <h3 className="modal-title">Créer une facture</h3>
-              <button className="modal-close" onClick={() => setIsModalOpen(false)}>
+              <h3 className="modal-title">{editingInvoiceId ? 'Modifier la facture' : 'Créer une facture'}</h3>
+              <button className="modal-close" onClick={closeModal}>
                 <X size={20} />
               </button>
             </div>
@@ -727,9 +766,9 @@ export default function Receivables() {
               </div>
 
               <div className="modal-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>Annuler</button>
+                <button type="button" className="btn btn-secondary" onClick={closeModal}>Annuler</button>
                 <button type="submit" className="btn btn-primary" disabled={submitting}>
-                  {submitting ? 'Création...' : 'Créer la facture'}
+                  {submitting ? (editingInvoiceId ? 'Modification...' : 'Création...') : (editingInvoiceId ? 'Enregistrer les modifications' : 'Créer la facture')}
                 </button>
               </div>
             </form>
