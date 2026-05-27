@@ -1,4 +1,4 @@
-const CACHE_NAME = 'devfinance-cache-v1';
+const CACHE_NAME = 'devfinance-cache-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/manifest.json',

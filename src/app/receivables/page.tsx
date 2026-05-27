@@ -55,6 +55,7 @@ export default function Receivables() {
   const [receivables, setReceivables] = useState<Receivable[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [projectOptions, setProjectOptions] = useState<Project[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -97,10 +98,13 @@ export default function Receivables() {
     async function fetchClientProjects() {
       if (!formData.client_id) {
         setProjectOptions([]);
+        setProjectsLoading(false);
         return;
       }
 
       try {
+        setProjectsLoading(true);
+        setProjectOptions([]);
         const res = await fetch(`/api/projects?client_id=${encodeURIComponent(formData.client_id)}`);
         if (!res.ok) {
           throw new Error('Erreur lors du chargement des projets du client');
@@ -111,6 +115,8 @@ export default function Receivables() {
       } catch (err) {
         console.error('Erreur chargement projets client:', err);
         setProjectOptions([]);
+      } finally {
+        setProjectsLoading(false);
       }
     }
 
@@ -305,6 +311,10 @@ export default function Receivables() {
       (r.notes && r.notes.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesTab && matchesSearch;
   });
+
+  const visibleProjectOptions = projectOptions.filter(
+    (project) => project.client_id === formData.client_id
+  );
 
   if (loading && receivables.length === 0) {
     return (
@@ -744,11 +754,13 @@ export default function Receivables() {
                   <option value="">
                     {!formData.client_id
                       ? 'Choisir d’abord un client'
-                      : projectOptions.length === 0
+                      : projectsLoading
+                        ? 'Chargement des projets...'
+                        : visibleProjectOptions.length === 0
                         ? 'Aucun projet lié'
                         : 'Aucun projet lié'}
                   </option>
-                  {projectOptions.map((p) => (
+                  {visibleProjectOptions.map((p) => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
