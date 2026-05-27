@@ -400,7 +400,7 @@ export default function Dashboard() {
       </header>
 
       {/* Date Filter Panel */}
-      <div className="glass-panel" style={{ 
+      <div className="glass-panel dashboard-date-panel" style={{ 
         padding: '16px 20px', 
         marginBottom: '35px', 
         display: 'flex', 
@@ -411,9 +411,9 @@ export default function Dashboard() {
         background: 'rgba(255, 255, 255, 0.02)',
         borderColor: 'var(--border-glass)'
       }}>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div className="dashboard-period-group" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)', fontWeight: '600' }}>Période :</span>
-          <div style={{ display: 'flex', gap: '6px', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
+          <div className="dashboard-period-pills" style={{ display: 'flex', gap: '6px', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
             <button 
               type="button" 
               className="btn" 
@@ -471,8 +471,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="dashboard-date-inputs" style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="dashboard-date-input-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Du</span>
             <input 
               type="date" 
@@ -482,7 +482,7 @@ export default function Dashboard() {
               onChange={(e) => setStartDate(e.target.value)}
             />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="dashboard-date-input-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Au</span>
             <input 
               type="date" 
@@ -537,8 +537,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <form onSubmit={handleAISubmit} style={{ display: 'flex', gap: '12px', alignItems: 'center', position: 'relative' }}>
-          <div style={{ flexGrow: 1, position: 'relative' }}>
+        <form onSubmit={handleAISubmit} className="dashboard-ai-form" style={{ display: 'flex', gap: '12px', alignItems: 'center', position: 'relative' }}>
+          <div className="dashboard-ai-input-wrap" style={{ flexGrow: 1, position: 'relative' }}>
             <input 
               type="text" 
               placeholder='Ex: "J&#39;ai realiser la mise a jour de l&#39;application NOUMOBILE pour le client NOU pour 30 000 HTG, pas encore payé"'
@@ -563,7 +563,7 @@ export default function Dashboard() {
           </div>
           <button 
             type="submit" 
-            className="btn btn-primary" 
+            className="btn btn-primary dashboard-ai-submit" 
             style={{ 
               background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)',
               borderColor: '#7c3aed',
@@ -580,7 +580,7 @@ export default function Dashboard() {
         </form>
 
         {/* Suggestion Chips */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="dashboard-ai-suggestions" style={{ display: 'flex', gap: '10px', marginTop: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Suggestions :</span>
           {[
             "Revenu de 500$",
