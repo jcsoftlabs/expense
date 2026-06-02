@@ -957,7 +957,7 @@ export default function Dashboard() {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexGrow: 1, minWidth: 0 }}>
-                      <span style={{ fontSize: '0.88rem', fontWeight: '600', color: '#ffffff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <span className="mobile-wrap-anywhere" style={{ fontSize: '0.88rem', fontWeight: '600', color: '#ffffff' }}>
                         {t.description}
                       </span>
                       <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>

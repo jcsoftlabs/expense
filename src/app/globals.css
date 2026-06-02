@@ -417,6 +417,30 @@ p {
     width: 100%;
   }
 
+  .mobile-scroll-x {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .mobile-scroll-x::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-scroll-x-content {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .mobile-wrap-anywhere {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
   /* Modal: full width on small screens */
   .modal-container {
     width: calc(100% - 24px) !important;

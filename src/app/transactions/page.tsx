@@ -321,7 +321,8 @@ export default function Transactions() {
       {/* Filter & Search bar */}
       <section className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '30px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', alignItems: 'center', width: '100%' }}>
-          <div style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
+          <div className="mobile-scroll-x">
+            <div className="mobile-scroll-x-content" style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
             {(['ALL', 'INCOME', 'EXPENSE'] as const).map(type => (
               <button
                 key={type}
@@ -337,6 +338,7 @@ export default function Transactions() {
                 {type === 'ALL' ? 'Tous' : type === 'INCOME' ? 'Revenus' : 'Dépenses'}
               </button>
             ))}
+            </div>
           </div>
           <div style={{ position: 'relative', minWidth: '260px', flexGrow: 1, maxWidth: '420px' }}>
             <Search size={18} color="var(--text-dark)" style={{ position: 'absolute', left: '14px', top: '14px' }} />
@@ -367,7 +369,8 @@ export default function Transactions() {
           )}
 
           {/* Interactive Sorting Controls */}
-          <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="mobile-scroll-x">
+            <div className="mobile-scroll-x-content" style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap', alignItems: 'center' }}>
             <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Trier par :</span>
             <button
               type="button"
@@ -397,6 +400,7 @@ export default function Transactions() {
             >
               Montant {sortBy === 'amount' ? (sortOrder === 'desc' ? '▼' : '▲') : '⇅'}
             </button>
+            </div>
           </div>
         </div>
       </section>
@@ -474,7 +478,7 @@ export default function Transactions() {
                 </div>
 
                 {/* Row 2: Description */}
-                <p style={{ fontSize: '0.9rem', fontWeight: 600, color: '#ffffff', marginBottom: '8px', lineHeight: 1.3 }}>
+                <p className="mobile-wrap-anywhere" style={{ fontSize: '0.9rem', fontWeight: 600, color: '#ffffff', marginBottom: '8px', lineHeight: 1.3 }}>
                   {t.description}
                 </p>
 

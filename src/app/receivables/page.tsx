@@ -417,7 +417,8 @@ export default function Receivables() {
       </div>
 
       {/* Filter Tabs */}
-      <section style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--border-glass)', paddingBottom: '16px', marginBottom: '30px', flexWrap: 'wrap' }}>
+      <section className="mobile-scroll-x" style={{ borderBottom: '1px solid var(--border-glass)', paddingBottom: '16px', marginBottom: '30px' }}>
+        <div className="mobile-scroll-x-content" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
         {['ALL', 'PENDING', 'PARTIAL', 'OVERDUE', 'PAID'].map((status) => {
           const count = receivables.filter(r => status === 'ALL' || r.status === status).length;
           const labels: { [key: string]: string } = {
@@ -448,6 +449,7 @@ export default function Receivables() {
             </button>
           );
         })}
+        </div>
       </section>
 
       {/* Invoice Card Grid */}
