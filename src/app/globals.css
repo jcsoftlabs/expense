@@ -327,6 +327,12 @@ p {
 }
 
 @media (max-width: 768px) {
+  html,
+  body {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
   body {
     flex-direction: column;
   }
@@ -340,6 +346,9 @@ p {
     margin-left: 0;
     padding: 16px;
     padding-bottom: calc(100px + env(safe-area-inset-bottom));
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
   }
 
   /* Dashboard header: stack action buttons on mobile */
@@ -419,11 +428,15 @@ p {
 
   .mobile-scroll-x {
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    display: block;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    touch-action: pan-x;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
   }
 
   .mobile-scroll-x::-webkit-scrollbar {
@@ -435,6 +448,49 @@ p {
     flex-wrap: nowrap !important;
     width: max-content;
     min-width: max-content;
+  }
+
+  .mobile-scroll-x-content > * {
+    flex: 0 0 auto;
+  }
+
+  .mobile-native-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+  }
+
+  .mobile-native-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-native-scroll-content {
+    min-width: max-content;
+  }
+
+  .mobile-safe-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .mobile-safe-card,
+  .mobile-safe-card * {
+    min-width: 0;
+  }
+
+  .mobile-safe-card {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .mobile-safe-inline {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .mobile-wrap-anywhere {

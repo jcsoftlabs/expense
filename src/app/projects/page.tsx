@@ -209,7 +209,7 @@ export default function Projects() {
         </header>
 
         {/* Card Grid Skeleton */}
-        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px' }}>
+        <section className="mobile-safe-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px' }}>
           {[1, 2, 3].map(idx => (
             <div key={idx} className="skeleton-card" style={{ minHeight: '280px', padding: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px' }}>
@@ -249,7 +249,7 @@ export default function Projects() {
       </header>
 
       {/* Projects Grid */}
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px' }}>
+      <section className="mobile-safe-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px' }}>
         {projects.length === 0 ? (
           <div style={{ 
             gridColumn: '1 / -1', 
@@ -309,7 +309,7 @@ export default function Projects() {
             return (
               <div 
                 key={p.id} 
-                className="glass-panel card-hover-lift"
+                className="glass-panel card-hover-lift mobile-safe-card"
                 style={{ 
                   padding: '24px', 
                   display: 'flex', 
@@ -335,7 +335,7 @@ export default function Projects() {
                       }}>
                         <Briefcase size={18} />
                       </div>
-                      <div>
+                      <div className="mobile-safe-inline">
                         <h4 style={{ fontSize: '1.05rem', color: '#ffffff' }}>{p.name}</h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '3px' }}>
                           {p.clientName && (

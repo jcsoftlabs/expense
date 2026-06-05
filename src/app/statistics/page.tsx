@@ -413,14 +413,14 @@ export default function Statistics() {
       </div>
 
       {/* Ratios & Indicators (Row of 3 cards) */}
-      <section style={{ 
+      <section className="mobile-safe-grid" style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
         gap: '24px', 
         marginBottom: '35px' 
       }}>
         {/* Card 1: Marge Nette Consolidée */}
-        <div className="glass-panel card-hover-lift" style={{ padding: '24px', position: 'relative', overflow: 'hidden' }}>
+        <div className="glass-panel card-hover-lift mobile-safe-card" style={{ padding: '24px', position: 'relative', overflow: 'hidden' }}>
           <div style={{
             position: 'absolute',
             top: '-20px',
@@ -464,7 +464,7 @@ export default function Statistics() {
         </div>
 
         {/* Card 2: Revenu Mensuel Moyen */}
-        <div className="glass-panel card-hover-lift" style={{ padding: '24px', position: 'relative', overflow: 'hidden' }}>
+        <div className="glass-panel card-hover-lift mobile-safe-card" style={{ padding: '24px', position: 'relative', overflow: 'hidden' }}>
           <div style={{
             position: 'absolute',
             top: '-20px',
@@ -502,7 +502,7 @@ export default function Statistics() {
         </div>
 
         {/* Card 3: Efficacité des Recouvrements */}
-        <div className="glass-panel card-hover-lift" style={{ padding: '24px', position: 'relative', overflow: 'hidden' }}>
+        <div className="glass-panel card-hover-lift mobile-safe-card" style={{ padding: '24px', position: 'relative', overflow: 'hidden' }}>
           <div style={{
             position: 'absolute',
             top: '-20px',
@@ -547,14 +547,14 @@ export default function Statistics() {
       </section>
 
       {/* Main Charts Canvas (Grids) */}
-      <section className="stats-charts-grid" style={{ 
+      <section className="stats-charts-grid mobile-safe-grid" style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', 
         gap: '24px',
         marginBottom: '35px'
       }}>
         {/* Widget Left: Flux Mensuel Bar Chart */}
-        <div className="glass-panel" style={{ padding: '24px', minHeight: '340px' }}>
+        <div className="glass-panel mobile-safe-card" style={{ padding: '24px', minHeight: '340px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Flux Mensuel Comparatif ({activeCurrency})</h3>
@@ -721,7 +721,7 @@ export default function Statistics() {
         </div>
 
         {/* Widget Right: Dépenses par Catégorie Donut Chart */}
-        <div className="glass-panel" style={{ padding: '24px', minHeight: '340px' }}>
+        <div className="glass-panel mobile-safe-card" style={{ padding: '24px', minHeight: '340px' }}>
           <div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '4px' }}>Dépenses par Catégorie</h3>
             <p style={{ fontSize: '0.78rem', color: 'var(--text-dark)', marginBottom: '20px' }}>Distribution de vos coûts de fonctionnement ({activeCurrency})</p>
@@ -873,7 +873,7 @@ export default function Statistics() {
       </section>
 
       {/* Payment methods volume collected analysis */}
-      <section className="glass-panel" style={{ padding: '24px', width: '100%' }}>
+      <section className="glass-panel mobile-safe-card" style={{ padding: '24px', width: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
           <CreditCard size={20} color="var(--primary)" />
           <div>
@@ -887,7 +887,7 @@ export default function Statistics() {
             Aucun paiement encaissé répertorié pour cette période ({activeCurrency}).
           </div>
         ) : (
-          <div style={{ 
+          <div className="mobile-safe-grid" style={{ 
             display: 'grid', 
             gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
             gap: '20px',
@@ -912,7 +912,7 @@ export default function Statistics() {
               }
 
               return (
-                <div key={i} className="glass-panel" style={{ padding: '16px 20px', background: 'rgba(255,255,255,0.015)' }}>
+                <div key={i} className="glass-panel mobile-safe-card" style={{ padding: '16px 20px', background: 'rgba(255,255,255,0.015)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <span style={{ 
                       padding: '4px 8px', 

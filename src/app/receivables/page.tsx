@@ -361,7 +361,7 @@ export default function Receivables() {
         </div>
 
         {/* Card Grid Skeleton */}
-        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+        <section className="mobile-safe-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
           {[1, 2, 3].map(idx => (
             <div key={idx} className="skeleton-card" style={{ minHeight: '220px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '14px' }}>
@@ -475,7 +475,7 @@ export default function Receivables() {
       </section>
 
       {/* Invoice Card Grid */}
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+      <section className="mobile-safe-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
         {filteredReceivables.length === 0 ? (
           <div style={{ gridColumn: '1 / -1' }} className="empty-state glass-panel">
             <div className="empty-state-icon">
@@ -500,7 +500,7 @@ export default function Receivables() {
             return (
               <div 
                 key={inv.id} 
-                className={`glass-panel ${isOverdue ? 'pulse-overdue' : ''}`}
+                className={`glass-panel mobile-safe-card ${isOverdue ? 'pulse-overdue' : ''}`}
                 style={{ 
                   padding: '24px', 
                   display: 'flex', 
@@ -526,7 +526,7 @@ export default function Receivables() {
                       }}>
                         <FileText size={18} />
                       </div>
-                      <div>
+                      <div className="mobile-safe-inline">
                         <h4 style={{ fontSize: '0.98rem' }}>{inv.invoice_number}</h4>
                         <span style={{ fontSize: '0.78rem', color: 'var(--text-dark)' }}>
                           Émise le {formatLocalDateCompact(inv.issue_date)}
@@ -548,14 +548,14 @@ export default function Receivables() {
                     
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }}>
                       <User size={13} color="var(--text-dark)" />
-                      <span style={{ color: 'var(--text-main)', fontWeight: '600' }}>{inv.clientName}</span>
-                      {inv.clientCompany && <span style={{ color: 'var(--text-dark)' }}>({inv.clientCompany})</span>}
+                      <span className="mobile-safe-inline" style={{ color: 'var(--text-main)', fontWeight: '600' }}>{inv.clientName}</span>
+                      {inv.clientCompany && <span className="mobile-safe-inline" style={{ color: 'var(--text-dark)' }}>({inv.clientCompany})</span>}
                     </div>
 
                     {inv.projectName && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: 'var(--primary)' }}>
                         <Briefcase size={13} />
-                        <span>{inv.projectName}</span>
+                        <span className="mobile-safe-inline">{inv.projectName}</span>
                       </div>
                     )}
 
@@ -572,7 +572,7 @@ export default function Receivables() {
 
                     {inv.notes && (
                       <p style={{ fontSize: '0.8rem', marginTop: '8px', fontStyle: 'italic', color: 'var(--text-muted)' }}>
-                        "{inv.notes}"
+                        {inv.notes}
                       </p>
                     )}
 

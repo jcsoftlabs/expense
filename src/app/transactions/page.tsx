@@ -353,7 +353,7 @@ export default function Transactions() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap', borderTop: '1px solid var(--border-glass)', paddingTop: '15px' }}>
+        <div className="mobile-native-scroll" style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap', borderTop: '1px solid var(--border-glass)', paddingTop: '15px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Du :</span>
             <input type="date" className="form-input" style={{ padding: '6px 10px', fontSize: '0.8rem', width: '140px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-glass)' }} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
@@ -436,7 +436,7 @@ export default function Transactions() {
             {sortedTransactions.map((t) => (
               <div
                 key={t.id}
-                className="glass-panel"
+                className="glass-panel mobile-safe-card"
                 style={{
                   padding: '14px 16px',
                   borderLeft: `3px solid ${t.type === 'INCOME' ? 'var(--success)' : 'var(--danger)'}`,
@@ -444,8 +444,8 @@ export default function Transactions() {
                 }}
               >
                 {/* Row 1: type badge + amount + delete */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', gap: '12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', minWidth: 0 }}>
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: '4px',
                       fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
@@ -460,7 +460,7 @@ export default function Transactions() {
                     {t.payment_method && <PaymentBadge method={t.payment_method} />}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: '0 0 auto' }}>
                     <span style={{ fontWeight: 800, fontSize: '1.05rem', color: t.type === 'INCOME' ? 'var(--success)' : '#ffffff' }}>
                       {t.type === 'INCOME' ? '+' : '−'}{formatCurrency(t.amount, t.currency)}
                     </span>

@@ -201,7 +201,7 @@ export default function Clients() {
         </header>
 
         {/* Card Grid Skeleton */}
-        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
+        <section className="mobile-safe-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
           {[1, 2, 3].map(idx => (
             <div key={idx} className="skeleton-card" style={{ minHeight: '260px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -242,7 +242,7 @@ export default function Clients() {
       </header>
 
       {/* CRM Client Cards Grid */}
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
+      <section className="mobile-safe-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
         {clients.length === 0 ? (
           <div style={{ 
             gridColumn: '1 / -1', 
@@ -289,7 +289,7 @@ export default function Clients() {
             return (
               <div 
                 key={c.id} 
-                className="glass-panel card-hover-lift"
+                className="glass-panel card-hover-lift mobile-safe-card"
                 style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '24px' }}
               >
                 {/* Header Information */}
@@ -311,7 +311,7 @@ export default function Clients() {
                       >
                         {c.name.charAt(0)}
                       </div>
-                      <div>
+                      <div className="mobile-safe-inline">
                         <h4 style={{ fontSize: '1.05rem', color: '#ffffff' }}>{c.name}</h4>
                         {c.company && (
                           <span style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -342,7 +342,7 @@ export default function Clients() {
                   {/* Contact Methods */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '24px 0 0 0', padding: '16px 0', borderTop: '1px solid var(--border-glass)', borderBottom: '1px solid var(--border-glass)' }}>
                     {c.email ? (
-                      <a href={`mailto:${c.email}`} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: 'var(--text-muted)', textDecoration: 'none' }} className="contact-link">
+                      <a href={`mailto:${c.email}`} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: 'var(--text-muted)', textDecoration: 'none' }} className="contact-link mobile-safe-inline">
                         <Mail size={14} color="var(--text-dark)" /> {c.email}
                       </a>
                     ) : (
@@ -350,7 +350,7 @@ export default function Clients() {
                     )}
 
                     {c.phone ? (
-                      <a href={`tel:${c.phone}`} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: 'var(--text-muted)', textDecoration: 'none' }} className="contact-link">
+                      <a href={`tel:${c.phone}`} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: 'var(--text-muted)', textDecoration: 'none' }} className="contact-link mobile-safe-inline">
                         <Phone size={14} color="var(--text-dark)" /> {c.phone}
                       </a>
                     ) : (
