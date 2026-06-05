@@ -418,7 +418,7 @@ export default function Receivables() {
 
       {/* Filter Tabs */}
       <section className="mobile-scroll-x" style={{ borderBottom: '1px solid var(--border-glass)', paddingBottom: '16px', marginBottom: '30px' }}>
-        <div className="mobile-scroll-x-content" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <div className="mobile-scroll-x-content" style={{ display: 'flex', gap: '12px', flexWrap: 'nowrap' }}>
         {['ALL', 'PENDING', 'PARTIAL', 'OVERDUE', 'PAID'].map((status) => {
           const count = receivables.filter(r => status === 'ALL' || r.status === status).length;
           const labels: { [key: string]: string } = {

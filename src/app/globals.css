@@ -420,8 +420,10 @@ p {
   .mobile-scroll-x {
     width: 100%;
     overflow-x: auto;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    touch-action: pan-x;
   }
 
   .mobile-scroll-x::-webkit-scrollbar {
@@ -429,8 +431,10 @@ p {
   }
 
   .mobile-scroll-x-content {
+    display: inline-flex;
+    flex-wrap: nowrap !important;
     width: max-content;
-    min-width: 100%;
+    min-width: max-content;
   }
 
   .mobile-wrap-anywhere {

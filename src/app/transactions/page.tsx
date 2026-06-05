@@ -322,7 +322,7 @@ export default function Transactions() {
       <section className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '30px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', alignItems: 'center', width: '100%' }}>
           <div className="mobile-scroll-x">
-            <div className="mobile-scroll-x-content" style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
+            <div className="mobile-scroll-x-content" style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-glass)', flexWrap: 'nowrap' }}>
             {(['ALL', 'INCOME', 'EXPENSE'] as const).map(type => (
               <button
                 key={type}
@@ -370,7 +370,7 @@ export default function Transactions() {
 
           {/* Interactive Sorting Controls */}
           <div className="mobile-scroll-x">
-            <div className="mobile-scroll-x-content" style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="mobile-scroll-x-content" style={{ display: 'flex', gap: '8px', marginLeft: 'auto', flexWrap: 'nowrap', alignItems: 'center' }}>
             <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Trier par :</span>
             <button
               type="button"
