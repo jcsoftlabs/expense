@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { parseAICommand } from '@/lib/aiParser';
 import crypto from 'crypto';
+import { generatePublicPaymentToken } from '@/lib/receivables';
 
 export async function POST(request: Request) {
   try {
@@ -82,12 +83,13 @@ export async function POST(request: Request) {
     if (extracted.action === 'CREATE_INVOICE') {
       // Création d'un Receivable (Facture en attente de paiement)
       const invoiceId = crypto.randomUUID();
+      const publicPaymentToken = generatePublicPaymentToken();
       const invoiceNumber = `FACT-AI-${Date.now().toString().slice(-4)}`;
       const issueDate = new Date().toISOString().split('T')[0];
       const dueDate = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString().split('T')[0]; // +14 jours par défaut
 
       await query(
-        `INSERT INTO receivables (id, invoice_number, amount, issue_date, due_date, status, client_id, project_id, notes, currency) VALUES (?, ?, ?, ?, ?, 'PENDING', ?, ?, ?, ?)`,
+        `INSERT INTO receivables (id, invoice_number, amount, issue_date, due_date, status, client_id, project_id, notes, currency, public_payment_token) VALUES (?, ?, ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?)`,
         [
           invoiceId,
           invoiceNumber,
@@ -97,7 +99,8 @@ export async function POST(request: Request) {
           clientId || null,
           projectId || null,
           extracted.notes,
-          extracted.currency
+          extracted.currency,
+          publicPaymentToken
         ]
       );
 

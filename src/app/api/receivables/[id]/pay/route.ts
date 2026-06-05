@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import crypto from 'crypto';
+import { recordInvoicePayment } from '@/lib/receivables';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -51,43 +51,18 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: `Le montant à encaisser dépasse le solde restant (${remaining.toFixed(2)}).` }, { status: 400 });
     }
 
-    const newPaidAmount = currentPaid + actualAmountToPay;
-    const newStatus = newPaidAmount >= amount - 0.01 ? 'PAID' : 'PARTIAL';
+    const { invoice: updatedInvoice, transactionId } = await recordInvoicePayment({
+      invoice,
+      amountToPay: actualAmountToPay,
+      paymentMethod,
+      paymentDate,
+      source: 'MANUAL',
+    });
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    const actualPaymentDate = paymentDate || todayStr;
-
-    // 2. Perform updates
-    // Update invoice status, paid_amount and set payment method
-    await query(
-      `UPDATE receivables SET status = ?, paid_amount = ?, payment_method = ? WHERE id = ?`,
-      [newStatus, newPaidAmount, paymentMethod, id]
-    );
-
-    // 3. Inject corresponding INCOME transaction
-    const txnId = crypto.randomUUID();
+    const newPaidAmount = parseFloat(updatedInvoice.paid_amount || 0);
+    const newStatus = updatedInvoice.status;
     const isPartial = newStatus === 'PARTIAL';
-    const txnDescription = `Paiement ${isPartial ? 'Partiel ' : ''}Facture #${invoice.invoice_number}${invoice.notes ? ` - ${invoice.notes}` : ''}`;
-    
-    // Choose appropriate category
-    const txnCategory = 'Freelance Dev';
 
-    await query(
-      `INSERT INTO transactions (id, type, amount, date, category, description, project_id, client_id, currency, payment_method) VALUES (?, 'INCOME', ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        txnId, 
-        actualAmountToPay, 
-        actualPaymentDate, 
-        txnCategory, 
-        txnDescription, 
-        invoice.project_id || null, 
-        invoice.client_id || null,
-        invoice.currency || 'USD',
-        paymentMethod
-      ]
-    );
-
-    const [updatedInvoice] = await query(`SELECT * FROM receivables WHERE id = ?`, [id]);
     return NextResponse.json({
       success: true,
       message: isPartial 
@@ -98,7 +73,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         amount: parseFloat(updatedInvoice.amount || 0),
         paid_amount: parseFloat(updatedInvoice.paid_amount || 0)
       },
-      transactionId: txnId
+      transactionId
     });
   } catch (error: any) {
     console.error('API Error in Invoice Pay endpoint:', error);

@@ -7,6 +7,7 @@ import {
   CheckCircle2, 
   Trash2, 
   Edit,
+  Link2,
   Loader2,
   X,
   FileText,
@@ -37,6 +38,8 @@ interface Receivable {
   clientCompany?: string;
   notes?: string;
   payment_method?: string;
+  public_payment_token?: string;
+  stripe_payment_status?: string;
 }
 
 interface Client {
@@ -89,6 +92,25 @@ export default function Receivables() {
   const [payAmount, setPayAmount] = useState<string>('');
   const [payMethod, setPayMethod] = useState<string>('CASH');
   const [payDate, setPayDate] = useState<string>(new Date().toISOString().split('T')[0]);
+
+  function publicPaymentUrl(token: string) {
+    if (typeof window === 'undefined') return '';
+    return `${window.location.origin}/pay/${token}`;
+  }
+
+  async function copyPaymentLink(invoice: Receivable) {
+    if (!invoice.public_payment_token) {
+      showToast('Aucun lien de paiement disponible pour cette facture.', 'warning');
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(publicPaymentUrl(invoice.public_payment_token));
+      showToast('Lien de paiement copié !', 'success');
+    } catch (err) {
+      showToast('Impossible de copier le lien de paiement.', 'error');
+    }
+  }
 
   useEffect(() => {
     fetchData();
@@ -535,6 +557,17 @@ export default function Receivables() {
                         <Briefcase size={13} />
                         <span>{inv.projectName}</span>
                       </div>
+                    )}
+
+                    {inv.public_payment_token && inv.status !== 'PAID' && (
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        style={{ width: 'fit-content', marginTop: '6px', padding: '8px 12px', fontSize: '0.78rem' }}
+                        onClick={() => copyPaymentLink(inv)}
+                      >
+                        <Link2 size={13} /> Payer en ligne
+                      </button>
                     )}
 
                     {inv.notes && (

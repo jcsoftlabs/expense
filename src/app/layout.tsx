@@ -25,6 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = usePathname();
+  const isPublicPaymentRoute = pathname.startsWith('/pay/');
   const [isLocked, setIsLocked] = useState(true);
   const [loading, setLoading] = useState(true);
   const [isConfirmLockOpen, setIsConfirmLockOpen] = useState(false);
@@ -39,8 +40,14 @@ export default function RootLayout({
   ];
 
   useEffect(() => {
+    if (isPublicPaymentRoute) {
+      setIsLocked(false);
+      setLoading(false);
+      return;
+    }
+
     checkSecurityStatus();
-  }, []);
+  }, [isPublicPaymentRoute]);
 
   async function checkSecurityStatus() {
     try {
@@ -87,7 +94,11 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body>
-        {loading ? (
+        {isPublicPaymentRoute ? (
+          <ToastProvider>
+            <main>{children}</main>
+          </ToastProvider>
+        ) : loading ? (
           <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
             background: '#04060a', display: 'flex', alignItems: 'center',

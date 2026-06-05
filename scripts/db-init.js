@@ -81,7 +81,13 @@ async function main() {
       notes TEXT,
       currency VARCHAR(3) NOT NULL DEFAULT 'USD',
       payment_method VARCHAR(50) DEFAULT NULL,
+      public_payment_token VARCHAR(64) DEFAULT NULL,
+      stripe_checkout_session_id VARCHAR(255) DEFAULT NULL,
+      stripe_payment_intent_id VARCHAR(255) DEFAULT NULL,
+      stripe_payment_status VARCHAR(50) DEFAULT NULL,
+      stripe_customer_email VARCHAR(255) DEFAULT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_receivables_public_payment_token (public_payment_token),
       FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL,
       FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

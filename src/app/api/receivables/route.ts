@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import crypto from 'crypto';
+import { generatePublicPaymentToken } from '@/lib/receivables';
 
 export async function GET(request: Request) {
   try {
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
     }
 
     const id = crypto.randomUUID();
+    const publicPaymentToken = generatePublicPaymentToken();
     const invAmount = parseFloat(amount);
     const issueDate = new Date(issue_date).toISOString().split('T')[0];
     const dueDate = new Date(due_date).toISOString().split('T')[0];
@@ -64,8 +66,8 @@ export async function POST(request: Request) {
     const invCurrency = currency || 'USD';
 
     await query(
-      `INSERT INTO receivables (id, invoice_number, amount, paid_amount, issue_date, due_date, status, client_id, project_id, notes, currency) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, invoice_number, invAmount, 0.00, issueDate, dueDate, invStatus, client_id || null, project_id || null, notes || null, invCurrency]
+      `INSERT INTO receivables (id, invoice_number, amount, paid_amount, issue_date, due_date, status, client_id, project_id, notes, currency, public_payment_token) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, invoice_number, invAmount, 0.00, issueDate, dueDate, invStatus, client_id || null, project_id || null, notes || null, invCurrency, publicPaymentToken]
     );
 
     const [newInvoice] = await query(`SELECT * FROM receivables WHERE id = ?`, [id]);

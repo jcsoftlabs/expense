@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "db:init": "node scripts/db-init.js",
-    "db:clean": "node scripts/db-clean.js"
+    "db:clean": "node scripts/db-clean.js",
+    "db:migrate:stripe": "node scripts/db-migrate-stripe.js"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^13.3.0",
@@ -17,7 +18,8 @@
     "mysql2": "^3.22.3",
     "next": "16.2.6",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "stripe": "^22.2.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
