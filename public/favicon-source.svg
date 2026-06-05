@@ -1,0 +1,57 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="120" fill="#050811"/>
+  <rect x="28" y="28" width="456" height="456" rx="96" fill="url(#panel)" stroke="url(#frame)" stroke-width="8"/>
+  <path d="M176 120H246C304.542 120 352 167.458 352 226V286C352 344.542 304.542 392 246 392H176V120Z" fill="url(#bodyGlow)"/>
+  <path d="M192 152H244C284.869 152 318 185.131 318 226V286C318 326.869 284.869 360 244 360H192V152Z" fill="#08101D" stroke="url(#bodyStroke)" stroke-width="18"/>
+  <path d="M222 210H251C281.376 210 306 234.624 306 265C306 295.376 281.376 320 251 320H222V210Z" fill="url(#core)"/>
+  <path d="M239 210V320" stroke="#C9F2FF" stroke-width="14" stroke-linecap="round" opacity="0.92"/>
+  <path d="M214 252H276" stroke="#C9F2FF" stroke-width="14" stroke-linecap="round" opacity="0.92"/>
+  <rect x="334" y="162" width="30" height="198" rx="15" fill="url(#spine)"/>
+  <rect x="370" y="218" width="38" height="142" rx="19" fill="url(#barA)"/>
+  <rect x="416" y="184" width="38" height="176" rx="19" fill="url(#barB)"/>
+  <path d="M404 170L425 149L446 170" stroke="#D6FFF1" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="423" cy="127" r="26" fill="url(#coin)"/>
+  <path d="M416 127H430C433.314 127 436 129.686 436 133C436 136.314 433.314 139 430 139H416" stroke="#072315" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M423 117V149" stroke="#072315" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="161" cy="392" r="10" fill="#3B82F6" opacity="0.9"/>
+  <circle cx="136" cy="365" r="6" fill="#10B981" opacity="0.9"/>
+  <circle cx="381" cy="122" r="7" fill="#3B82F6" opacity="0.8"/>
+  <defs>
+    <linearGradient id="panel" x1="64" y1="44" x2="436" y2="468" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#101B31"/>
+      <stop offset="1" stop-color="#09101D"/>
+    </linearGradient>
+    <linearGradient id="frame" x1="74" y1="64" x2="458" y2="440" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#60A5FA" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#10B981" stop-opacity="0.35"/>
+    </linearGradient>
+    <linearGradient id="bodyGlow" x1="176" y1="120" x2="352" y2="392" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4F8DFF" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#0E1628" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="bodyStroke" x1="192" y1="152" x2="336" y2="362" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#60A5FA"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="core" x1="222" y1="210" x2="306" y2="320" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#60A5FA"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="spine" x1="349" y1="162" x2="349" y2="360" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#10B981"/>
+    </linearGradient>
+    <linearGradient id="barA" x1="389" y1="218" x2="389" y2="360" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#60A5FA"/>
+      <stop offset="1" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="barB" x1="435" y1="184" x2="435" y2="360" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10B981"/>
+      <stop offset="1" stop-color="#34D399"/>
+    </linearGradient>
+    <linearGradient id="coin" x1="397" y1="101" x2="449" y2="153" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6EE7B7"/>
+      <stop offset="1" stop-color="#10B981"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -34,7 +34,10 @@ export async function POST(request: Request) {
 
         if (invoices.length > 0) {
           const invoice = invoices[0];
-          const amountPaid = (session.amount_total || 0) / 100;
+          const metadataRequestedAmount = parseFloat(session.metadata?.requested_amount || '');
+          const amountPaid = Number.isFinite(metadataRequestedAmount) && metadataRequestedAmount > 0
+            ? metadataRequestedAmount
+            : (session.amount_total || 0) / 100;
           const paymentDate = new Date((event.created || Math.floor(Date.now() / 1000)) * 1000)
             .toISOString()
             .split('T')[0];

@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 import { Loader2, CreditCard, CheckCircle2, AlertTriangle, Briefcase, User } from 'lucide-react';
 import { formatCurrency } from '@/lib/currency';
 import { formatLocalDateCompact } from '@/lib/date';
+import { estimateStripeFeeCoverage } from '@/lib/stripe-fees';
 
 interface PublicInvoice {
   id: string;
@@ -29,6 +30,12 @@ export default function PublicPaymentPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [amountToPay, setAmountToPay] = useState('');
+  const [coverStripeFees, setCoverStripeFees] = useState(true);
+
+  function applySuggestedAmount(value: number) {
+    setAmountToPay(value.toFixed(2));
+  }
 
   async function fetchInvoice() {
     try {
@@ -41,6 +48,7 @@ export default function PublicPaymentPage() {
       }
 
       setInvoice(json);
+      setAmountToPay(json.remaining_amount?.toFixed(2) || '');
     } catch (err: any) {
       setError(err.message || 'Impossible de charger la facture.');
     } finally {
@@ -55,8 +63,24 @@ export default function PublicPaymentPage() {
   async function handlePayNow() {
     try {
       setSubmitting(true);
+      setError(null);
+      const parsedAmount = parseFloat(amountToPay);
+
+      if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+        throw new Error('Veuillez saisir un montant valide.');
+      }
+
+      if (invoice && parsedAmount > invoice.remaining_amount + 0.01) {
+        throw new Error('Le montant dépasse le solde restant.');
+      }
+
       const res = await fetch(`/api/public/invoices/${params.token}/checkout`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amountToPay: parsedAmount,
+          coverStripeFees,
+        }),
       });
       const json = await res.json();
 
@@ -74,6 +98,12 @@ export default function PublicPaymentPage() {
   }
 
   const status = searchParams.get('status');
+  const parsedAmountToPay = parseFloat(amountToPay);
+  const feeEstimate = invoice && Number.isFinite(parsedAmountToPay) && parsedAmountToPay > 0
+    ? estimateStripeFeeCoverage(parsedAmountToPay, invoice.currency)
+    : null;
+  const stripeFeeAmount = coverStripeFees && feeEstimate ? feeEstimate.feeAmount : 0;
+  const checkoutTotal = coverStripeFees && feeEstimate ? feeEstimate.totalAmount : (Number.isFinite(parsedAmountToPay) ? parsedAmountToPay : 0);
 
   return (
     <div style={{ minHeight: '100vh', background: 'radial-gradient(circle at top, rgba(59,130,246,0.16), transparent 35%), #050811', padding: '24px 16px' }}>
@@ -120,6 +150,17 @@ export default function PublicPaymentPage() {
                   </div>
                 </div>
 
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginTop: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Montant total</div>
+                    <div style={{ fontWeight: 700 }}>{formatCurrency(invoice.amount, invoice.currency)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Déjà payé</div>
+                    <div style={{ fontWeight: 700 }}>{formatCurrency(invoice.paid_amount, invoice.currency)}</div>
+                  </div>
+                </div>
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '18px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)' }}>
                     <User size={14} />
@@ -142,14 +183,119 @@ export default function PublicPaymentPage() {
                 </div>
               </div>
 
+              <div className="glass-panel" style={{ padding: '20px', background: 'rgba(255,255,255,0.02)' }}>
+                <div style={{ marginBottom: '18px' }}>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '6px' }}>Paiement partiel activé</div>
+                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#fff' }}>
+                    Choisissez vous-même le montant à payer maintenant
+                  </div>
+                </div>
+
+                <div className="input-group" style={{ marginBottom: 0 }}>
+                  <label className="input-label">Montant à payer maintenant ({invoice.currency})</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.50"
+                    max={invoice.remaining_amount}
+                    className="form-input"
+                    value={amountToPay}
+                    onChange={(e) => setAmountToPay(e.target.value)}
+                  />
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                    Vous pouvez payer un acompte ou régler le solde complet. Maximum : {formatCurrency(invoice.remaining_amount, invoice.currency)}
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '14px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ minWidth: 'unset', padding: '10px 14px' }}
+                    onClick={() => applySuggestedAmount(invoice.remaining_amount * 0.25)}
+                  >
+                    25%
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ minWidth: 'unset', padding: '10px 14px' }}
+                    onClick={() => applySuggestedAmount(invoice.remaining_amount * 0.5)}
+                  >
+                    50%
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    style={{ minWidth: 'unset', padding: '10px 14px' }}
+                    onClick={() => applySuggestedAmount(invoice.remaining_amount)}
+                  >
+                    Solde complet
+                  </button>
+                </div>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    marginTop: '16px',
+                    cursor: 'pointer',
+                    color: '#fff',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={coverStripeFees}
+                    onChange={(e) => setCoverStripeFees(e.target.checked)}
+                    style={{ marginTop: '3px' }}
+                  />
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontWeight: 600 }}>Couvrir les frais Stripe</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                      Ajoute un petit supplément pour que le montant net reçu corresponde au montant de facture choisi.
+                    </span>
+                  </span>
+                </label>
+
+                {feeEstimate && parsedAmountToPay > 0 && (
+                  <div
+                    style={{
+                      marginTop: '16px',
+                      padding: '14px',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'rgba(255,255,255,0.03)',
+                      display: 'grid',
+                      gap: '8px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Montant facture</span>
+                      <strong>{formatCurrency(parsedAmountToPay, invoice.currency)}</strong>
+                    </div>
+                    {coverStripeFees && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Supplément frais Stripe</span>
+                        <strong>{formatCurrency(stripeFeeAmount, invoice.currency)}</strong>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                      <span style={{ color: '#fff', fontWeight: 600 }}>Total à payer</span>
+                      <strong style={{ color: 'var(--primary)' }}>{formatCurrency(checkoutTotal, invoice.currency)}</strong>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <button
                 className="btn btn-primary"
                 style={{ width: '100%', padding: '16px 20px', fontSize: '1rem' }}
                 onClick={handlePayNow}
-                disabled={submitting || invoice.remaining_amount <= 0}
+                disabled={submitting || invoice.remaining_amount <= 0 || !amountToPay}
               >
                 {submitting ? <Loader2 className="animate-spin" size={18} /> : <CreditCard size={18} />}
-                {invoice.remaining_amount <= 0 ? 'Déjà réglée' : 'Payer maintenant'}
+                {invoice.remaining_amount <= 0 ? 'Déjà réglée' : `Payer ${Number.isFinite(checkoutTotal) && checkoutTotal > 0 ? checkoutTotal.toFixed(2) : amountToPay} ${invoice.currency}`}
               </button>
             </>
           ) : null}
